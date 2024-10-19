@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Script Runner</title>
+    <link rel="stylesheet" href="css/spotify-styles.css"> <!-- Ensure the correct path to your CSS -->
+</head>
+<body>
+    <div id="navbar"></div> <!-- Placeholder for the navigation bar -->
+    <button type="button" id="run-button">Run</button>
+    <div id="loading-spinner" class="spinner" style="display: none;">Loading...</div> <!-- Loading spinner -->
+    
+    <script>
+        // Load the navbar
+        fetch('navbar.html')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Navbar file not found');
+                }
+                return response.text();
+            })
+            .then(data => {
+                document.getElementById('navbar').innerHTML = data;
+            })
+            .catch(error => console.error('Error loading navbar:', error));
+
+        // Handle button click
+        document.getElementById('run-button').addEventListener('click', function() {
+            // Show the loading spinner
+            document.getElementById('loading-spinner').style.display = 'block';
+
+            // Check if the user is authenticated
+            fetch('https://shrouded-ocean-10890-4084b7906cd6.herokuapp.com/check_auth', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                // Hide the loading spinner
+                document.getElementById('loading-spinner').style.display = 'none';
+
+                if (response.status === 401) {
+                    // User is not authenticated, redirect to Spotify login
+                    window.location.href = 'https://shrouded-ocean-10890-4084b7906cd6.herokuapp.com/spotify';
+                } else if (response.ok) {
+                    // User is authenticated, run the script
+                    return fetch('https://shrouded-ocean-10890-4084b7906cd6.herokuapp.com/spotify', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                } else {
+                    throw new Error('Failed to check authentication.');
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to run Spotify script. Status: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                } else if (data.error) {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                // Hide the loading spinner
+                document.getElementById('loading-spinner').style.display = 'none';
+                console.error('Error:', error);
+                alert('There was an error running the script. ' + error.message);
+            });
+        });
+    </script>
+</body>
+</html>
