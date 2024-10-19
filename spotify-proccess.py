@@ -1,5 +1,5 @@
 import requests
-from flask import Flask, redirect, request, session, url_for, jsonify
+from flask import Flask, redirect, request, session, jsonify
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
@@ -60,6 +60,17 @@ def add_songs():
         'Content-Type': 'application/json'
     }
 
+    # Check if the access token is valid
+    token_info_url = 'https://api.spotify.com/v1/me'
+    token_check = requests.get(token_info_url, headers=headers)
+
+    if token_check.status_code != 200:
+        return jsonify({
+            'error': 'Invalid access token or permissions',
+            'status_code': token_check.status_code,
+            'details': token_check.json()
+        }), 401
+
     # Fetch favorited albums
     albums_url = 'https://api.spotify.com/v1/me/albums'
     response = requests.get(albums_url, headers=headers).json()
@@ -93,11 +104,20 @@ def add_songs():
     # Add songs to liked songs
     add_songs_url = 'https://api.spotify.com/v1/me/tracks'
     for i in range(0, len(track_uris), 50):  # Spotify allows adding up to 50 songs per request
+        print(f"Adding the following track URIs: {track_uris[i:i+50]}")  # Debugging
         response = requests.put(add_songs_url, headers=headers, json={'ids': track_uris[i:i+50]})
 
         # Log the response for debugging
         if response.status_code != 200:
             print(f"Failed to add songs in batch {i//50 + 1}: {response.json()}")  # Debugging
+            if response.status_code == 429:  # Rate limited
+                retry_after = response.headers.get('Retry-After')
+                print(f"Rate limited. Retry after {retry_after} seconds.")  # Debugging
+                return jsonify({
+                    'error': 'Rate limited',
+                    'retry_after': retry_after
+                }), 429
+
             return jsonify({
                 'error': f'Failed to add songs in batch {i//50 + 1}',
                 'status_code': response.status_code,
