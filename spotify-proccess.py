@@ -45,11 +45,13 @@ def callback():
     # Redirect back to your front-end with the access token as a query parameter
     return redirect(f'https://solanh.github.io/spotify/success.html?access_token={access_token}')
 
-@app.route('/add_songs')
+@app.route('/add_songs', methods=['GET'])
 def add_songs():
-    access_token = session.get('access_token')
+    # Use the access token from the request query parameters or headers
+    access_token = request.args.get('access_token')
+
     if not access_token:
-        return jsonify({'error': 'Access token not found in session'}), 401
+        return jsonify({'error': 'Access token not provided in request'}), 401
 
     print("Access token found, proceeding to add songs.")  # Debugging
 
