@@ -45,93 +45,54 @@ def callback():
     # Redirect back to your front-end with the access token as a query parameter
     return redirect(f'https://solanh.github.io/spotify/success.html?access_token={access_token}')
 
-def create_old_liked_songs_playlist(access_token):
+def fetch_all_favorited_albums(access_token):
     headers = {
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
     }
-
-    # Check if the "Old Liked Songs" playlist exists
-    playlists_url = 'https://api.spotify.com/v1/me/playlists'
-    response = requests.get(playlists_url, headers=headers).json()
-
-    for playlist in response['items']:
-        if playlist['name'] == 'Old Liked Songs':
-            print("Old Liked Songs playlist already exists. Skipping playlist creation.")
-            return playlist['id']  # Return the playlist ID if it already exists
-
-    # Create the playlist if it doesn't exist
-    user_profile_url = 'https://api.spotify.com/v1/me'
-    user_profile = requests.get(user_profile_url, headers=headers).json()
-
-    create_playlist_url = f"https://api.spotify.com/v1/users/{user_profile['id']}/playlists"
-    payload = {
-        "name": "Old Liked Songs",
-        "description": "All your old liked songs moved from Liked Songs",
-        "public": False  # You can change this to True if you want the playlist to be public
-    }
-    create_response = requests.post(create_playlist_url, headers=headers, json=payload).json()
-
-    print(f"Created new playlist 'Old Liked Songs'.")
-    return create_response['id']  # Return the new playlist ID
-
-def move_and_remove_old_liked_songs(access_token):
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'
-    }
-
-    # Get all the current liked songs
-    liked_songs_url = 'https://api.spotify.com/v1/me/tracks'
-    liked_songs = []
+    
+    albums_url = 'https://api.spotify.com/v1/me/albums'
+    all_albums = []
     offset = 0
 
+    # Fetch albums in paginated requests (50 albums per request)
     while True:
-        response = requests.get(liked_songs_url, headers=headers, params={'limit': 50, 'offset': offset}).json()
-        if not response['items']:
+        response = requests.get(albums_url, headers=headers, params={'limit': 50, 'offset': offset}).json()
+        if 'items' not in response or len(response['items']) == 0:
             break
+        all_albums.extend(response['items'])
+        offset += 50
+    
+    print(f"Total favorited albums found: {len(all_albums)}")
+    return all_albums
 
-        liked_songs.extend([item['track']['uri'] for item in response['items']])
+def fetch_all_tracks_from_album(album_id, access_token):
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+
+    album_tracks_url = f'https://api.spotify.com/v1/albums/{album_id}/tracks'
+    all_tracks = []
+    offset = 0
+
+    # Fetch tracks in paginated requests (50 tracks per request)
+    while True:
+        response = requests.get(album_tracks_url, headers=headers, params={'limit': 50, 'offset': offset}).json()
+        if 'items' not in response or len(response['items']) == 0:
+            break
+        all_tracks.extend(response['items'])
         offset += 50
 
-    if not liked_songs:
-        print("No liked songs found to move.")
-        return
-
-    print(f"Found {len(liked_songs)} liked songs.")
-
-    # Create or get the "Old Liked Songs" playlist
-    old_playlist_id = create_old_liked_songs_playlist(access_token)
-
-    # Add the liked songs to the new playlist
-    add_tracks_url = f"https://api.spotify.com/v1/playlists/{old_playlist_id}/tracks"
-    for i in range(0, len(liked_songs), 100):  # Add tracks in batches of 100
-        batch = liked_songs[i:i + 100]
-        add_response = requests.post(add_tracks_url, headers=headers, json={'uris': batch})
-        if add_response.status_code != 201:
-            print(f"Failed to add tracks to 'Old Liked Songs'. Response: {add_response.json()}")
-
-    print("Moved all liked songs to 'Old Liked Songs'.")
-
-    # Remove the liked songs from the user's liked songs
-    remove_tracks_url = 'https://api.spotify.com/v1/me/tracks'
-    for i in range(0, len(liked_songs), 50):  # Remove tracks in batches of 50
-        batch = liked_songs[i:i + 50]
-        remove_response = requests.delete(remove_tracks_url, headers=headers, json={'ids': [uri.split(':')[-1] for uri in batch]})
-        if remove_response.status_code != 200:
-            print(f"Failed to remove tracks from Liked Songs. Response: {remove_response.json()}")
-
-    print("Removed old liked songs from 'Liked Songs'.")
+    print(f"Tracks fetched from album {album_id}: {len(all_tracks)}")
+    return [track['uri'] for track in all_tracks]
 
 @app.route('/add_songs', methods=['GET'])
 def add_songs():
-    # Use the access token from the request query parameters or headers
     access_token = request.args.get('access_token')
 
     if not access_token:
         return jsonify({'error': 'Access token not provided in request'}), 401
-
-    print("Access token found, proceeding to add songs.")  # Debugging
 
     headers = {
         'Authorization': f'Bearer {access_token}',
@@ -149,13 +110,33 @@ def add_songs():
             'details': token_check.json()
         }), 401
 
-    # Trigger the first-time move of old liked songs
-    move_and_remove_old_liked_songs(access_token)
+    # Fetch all favorited albums
+    favorited_albums = fetch_all_favorited_albums(access_token)
 
-    # Continue with adding new songs to liked songs as per your original logic
-    # Fetch favorited albums and process as in the original script...
-    
-    return jsonify({'message': 'Songs added to Liked Songs!'})
+    if not favorited_albums:
+        return jsonify({'error': 'No favorited albums found'}), 400
+
+    # Fetch tracks from each favorited album
+    all_track_uris = []
+    for album in favorited_albums:
+        album_id = album['album']['id']
+        album_tracks = fetch_all_tracks_from_album(album_id, access_token)
+        all_track_uris.extend(album_tracks)
+
+    if not all_track_uris:
+        return jsonify({'error': 'No tracks found in favorited albums'}), 400
+
+    print(f"Total tracks found to add: {len(all_track_uris)}")
+
+    # Add songs to liked songs in batches of 50
+    add_songs_url = 'https://api.spotify.com/v1/me/tracks'
+    for i in range(0, len(all_track_uris), 50):
+        batch = all_track_uris[i:i + 50]
+        response = requests.put(add_songs_url, headers=headers, json={'ids': [uri.split(':')[-1] for uri in batch]})
+        if response.status_code != 200:
+            print(f"Failed to add songs in batch {i//50 + 1}: {response.json()}")
+
+    return jsonify({'message': f'Added {len(all_track_uris)} tracks to Liked Songs.'})
 
 if __name__ == '__main__':
     app.run(debug=True)
