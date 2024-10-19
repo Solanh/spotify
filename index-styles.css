@@ -1,0 +1,44 @@
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    background-color: #333; /* Set background color to #333 */
+    color: white; /* Set text color to white for better contrast */
+    font-family: 'Times New Roman', Times, serif; /* Set font to Times New Roman */
+}
+
+button {
+    margin-top: 20px;
+    padding: 10px 20px; /* Add horizontal padding for better appearance */
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #4CAF50; /* Set button background color */
+    color: white; /* Set button text color */
+    border: none; /* Remove default border */
+    border-radius: 5px; /* Add border radius for rounded corners */
+    transition: background-color 0.3s ease; /* Add transition for hover effect */
+}
+
+button:hover {
+    background-color: #45a049; /* Change background color on hover */
+}
+
+/* Styles for the loading spinner */
+.spinner {
+    margin-top: 20px;
+    border: 8px solid #f3f3f3; /* Light grey */
+    border-top: 8px solid #4CAF50; /* Green */
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
