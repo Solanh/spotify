@@ -5,7 +5,7 @@ import os
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # This allows requests from any domain
+CORS(app, resources={r"/*": {"origins": "https://solanh.github.io"}})
 app.secret_key = os.getenv('SECRET_KEY')
 load_dotenv()
 
