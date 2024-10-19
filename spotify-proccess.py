@@ -43,7 +43,7 @@ def callback():
     session['access_token'] = access_token
     
     # Redirect back to your front-end with the access token as a query parameter
-    return redirect(f'https://solanh.github.io/?access_token={access_token}')
+    return redirect(f'https://solanh.github.io/success/?access_token={access_token}')
 
 @app.route('/add_songs')
 def add_songs():

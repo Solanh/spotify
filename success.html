@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Integration</title>
+</head>
+<body>
+    <h1>Spotify Integration</h1>
+    <div id="status">Authenticating...</div>
+
+    <script>
+        // Function to get the access token from the URL
+        function getAccessTokenFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('access_token');
+        }
+
+        // Use the token
+        const accessToken = getAccessTokenFromUrl();
+
+        if (accessToken) {
+            document.getElementById('status').innerText = "Authenticated successfully! Token: " + accessToken;
+
+            // Store the token if needed (optional)
+            localStorage.setItem('spotify_access_token', accessToken);
+
+            // Use the access token to make API calls
+            fetch('https://api.spotify.com/v1/me', {
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("User data:", data);
+                document.getElementById('status').innerText = "Welcome, " + data.display_name;
+            })
+            .catch(error => {
+                console.error('Error fetching Spotify data:', error);
+                document.getElementById('status').innerText = "Failed to fetch user data.";
+            });
+        } else {
+            document.getElementById('status').innerText = "No access token found!";
+        }
+    </script>
+</body>
+</html>
