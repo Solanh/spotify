@@ -1,20 +1,17 @@
 import requests
-from flask import Flask, redirect, request, session, url_for
+from flask import Flask, redirect, request, session, url_for, jsonify
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-from flask import jsonify
 
 app = Flask(__name__)
 CORS(app)  # This allows requests from any domain
-
-app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 load_dotenv()
 
 SPOTIFY_CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
 SPOTIFY_CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
-REDIRECT_URI = 'https://solanh.github.io/spotify'
+REDIRECT_URI = 'https://nameless-ocean-47665-871e4574a92b.herokuapp.com/callback'
 
 AUTH_URL = 'https://accounts.spotify.com/authorize'
 TOKEN_URL = 'https://accounts.spotify.com/api/token'
@@ -37,13 +34,19 @@ def callback():
     }
     token_response = requests.post(TOKEN_URL, data=token_data).json()
 
-    # Return the access token to the frontend
-    return jsonify({'access_token': token_response['access_token']})
-
+    # Check for errors in token response
+    if 'access_token' in token_response:
+        session['access_token'] = token_response['access_token']
+        return jsonify({'access_token': token_response['access_token']})
+    else:
+        return jsonify({'error': 'Failed to fetch access token', 'details': token_response}), 400
 
 @app.route('/add_songs')
 def add_songs():
-    access_token = session['access_token']
+    access_token = session.get('access_token')
+    if not access_token:
+        return jsonify({'error': 'Access token not found in session'}), 401
+
     headers = {
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
@@ -52,6 +55,10 @@ def add_songs():
     # Fetch favorited albums
     albums_url = 'https://api.spotify.com/v1/me/albums'
     response = requests.get(albums_url, headers=headers).json()
+
+    if 'items' not in response:
+        return jsonify({'error': 'Failed to fetch albums', 'details': response}), 400
+
     track_uris = []
 
     # Get tracks from each album
@@ -59,6 +66,10 @@ def add_songs():
         album_id = item['album']['id']
         album_tracks_url = f'https://api.spotify.com/v1/albums/{album_id}/tracks'
         tracks_response = requests.get(album_tracks_url, headers=headers).json()
+
+        if 'items' not in tracks_response:
+            return jsonify({'error': 'Failed to fetch tracks for album', 'album_id': album_id, 'details': tracks_response}), 400
+
         track_uris += [track['uri'] for track in tracks_response['items']]
 
     # Add songs to liked songs
