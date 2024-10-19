@@ -33,6 +33,10 @@ def callback():
         'client_secret': SPOTIFY_CLIENT_SECRET
     }
     token_response = requests.post(TOKEN_URL, data=token_data).json()
+
+    if 'access_token' not in token_response:
+        return jsonify({'error': 'Failed to get access token', 'details': token_response}), 400
+
     access_token = token_response['access_token']
     
     # Store the access token in session for later use
@@ -51,7 +55,7 @@ def add_songs():
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
     }
-    
+
     # Fetch favorited albums
     albums_url = 'https://api.spotify.com/v1/me/albums'
     response = requests.get(albums_url, headers=headers).json()
@@ -72,9 +76,24 @@ def add_songs():
 
         track_uris += [track['uri'] for track in tracks_response['items']]
 
+    # Check if there are any tracks to add
+    if not track_uris:
+        return jsonify({'error': 'No tracks found to add to liked songs'}), 400
+
     # Add songs to liked songs
     add_songs_url = 'https://api.spotify.com/v1/me/tracks'
     for i in range(0, len(track_uris), 50):  # Spotify allows adding up to 50 songs per request
-        requests.put(add_songs_url, headers=headers, json={'ids': track_uris[i:i+50]})
-    
-    return "Songs added to Liked Songs!"
+        response = requests.put(add_songs_url, headers=headers, json={'ids': track_uris[i:i+50]})
+
+        # Log the response for debugging
+        if response.status_code != 200:
+            return jsonify({
+                'error': f'Failed to add songs in batch {i//50 + 1}',
+                'status_code': response.status_code,
+                'details': response.json()
+            }), response.status_code
+
+    return jsonify({'message': 'Songs added to Liked Songs!'})
+
+if __name__ == '__main__':
+    app.run(debug=True)
