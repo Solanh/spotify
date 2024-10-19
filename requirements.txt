@@ -1,0 +1,11 @@
+Flask==3.0.3
+Flask-Mail==0.10.0
+Mail==2.1.0
+python-dotenv==1.0.1
+requests==2.31.0
+Werkzeug==3.0.2
+Flask-CORS==3.0.10
+gunicorn==23.0.0
+spotipy==2.19.0
+Flask-Session==0.4.0
+redis==4.0.2
