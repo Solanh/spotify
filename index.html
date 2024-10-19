@@ -18,7 +18,7 @@
             document.getElementById('loading-spinner').style.display = 'block';
 
             // Start the login process by redirecting to the Flask login route
-            window.location.href = 'https://your-flask-backend-domain.com/login';
+            window.location.href = 'https://nameless-ocean-47665-871e4574a92b.herokuapp.com/login';
         });
 
         // Check if there's a query parameter indicating a callback
@@ -28,7 +28,7 @@
 
             if (code) {
                 // If there's a 'code' param, send it to the Flask backend for token exchange
-                fetch('https://your-flask-backend-domain.com/callback?code=' + code, {
+                fetch('https://nameless-ocean-47665-871e4574a92b.herokuapp.com/callback?code=' + code, {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
