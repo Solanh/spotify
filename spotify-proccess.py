@@ -82,7 +82,6 @@ def add_songs():
     print("Albums fetched successfully.")  # Debugging
     track_uris = []
 
-    # Get tracks from each album
     for item in response['items']:
         album_id = item['album']['id']
         album_tracks_url = f'https://api.spotify.com/v1/albums/{album_id}/tracks'
@@ -92,9 +91,10 @@ def add_songs():
             print(f"Failed to fetch tracks for album {album_id}: {tracks_response}")  # Debugging
             return jsonify({'error': 'Failed to fetch tracks for album', 'album_id': album_id, 'details': tracks_response}), 400
 
-        track_uris += [track['uri'] for track in tracks_response['items']]
+        # Extract only the track ID from the URI
+        track_uris += [track['uri'].split(':')[-1] for track in tracks_response['items']]
 
-    # Check if there are any tracks to add
+# Check if there are any tracks to add
     if not track_uris:
         print("No tracks found to add to liked songs.")  # Debugging
         return jsonify({'error': 'No tracks found to add to liked songs'}), 400
