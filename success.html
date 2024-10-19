@@ -30,9 +30,32 @@
 
         // Display a message or use the token
         if (accessToken) {
-            document.getElementById('message').innerText = "Access token: " + accessToken;
+            document.getElementById('message').innerText = "Access token found, adding songs...";
+            // Now you can perform an action with the access token, e.g., add songs
+            addSongs(accessToken);
         } else {
             document.getElementById('message').innerText = "No access token found.";
+        }
+
+        // Function to make a request to the backend to add songs
+        function addSongs(token) {
+            fetch('https://nameless-ocean-47665-871e4574a92b.herokuapp.com/add_songs', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    document.getElementById('message').innerText = data.message;
+                } else if (data.error) {
+                    document.getElementById('message').innerText = 'Error: ' + data.error;
+                }
+            })
+            .catch(error => {
+                document.getElementById('message').innerText = 'Error adding songs: ' + error.message;
+            });
         }
     </script>
 </body>
