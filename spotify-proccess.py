@@ -87,6 +87,64 @@ def fetch_all_tracks_from_album(album_id, access_token):
     print(f"Tracks fetched from album {album_id}: {len(all_tracks)}")
     return [track['uri'] for track in all_tracks]
 
+def move_old_liked_songs(access_token):
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+
+    # Check if the "Old Liked Songs" playlist exists
+    playlists_url = 'https://api.spotify.com/v1/me/playlists'
+    response = requests.get(playlists_url, headers=headers).json()
+
+    for playlist in response['items']:
+        if playlist['name'] == 'Old Liked Songs':
+            print("Old Liked Songs playlist already exists. Skipping creation.")
+            return
+
+    # Get all current liked songs
+    liked_songs_url = 'https://api.spotify.com/v1/me/tracks'
+    liked_songs = []
+    offset = 0
+
+    while True:
+        response = requests.get(liked_songs_url, headers=headers, params={'limit': 50, 'offset': offset}).json()
+        if not response['items']:
+            break
+        liked_songs.extend([item['track']['uri'] for item in response['items']])
+        offset += 50
+
+    if not liked_songs:
+        print("No liked songs found to move.")
+        return
+
+    # Create a new playlist called "Old Liked Songs"
+    user_profile_url = 'https://api.spotify.com/v1/me'
+    user_profile = requests.get(user_profile_url, headers=headers).json()
+    create_playlist_url = f"https://api.spotify.com/v1/users/{user_profile['id']}/playlists"
+    payload = {
+        "name": "Old Liked Songs",
+        "description": "All your old liked songs moved from Liked Songs",
+        "public": False
+    }
+    create_response = requests.post(create_playlist_url, headers=headers, json=payload).json()
+    old_playlist_id = create_response['id']
+    print(f"Created new playlist 'Old Liked Songs'.")
+
+    # Add the liked songs to the new playlist
+    add_tracks_url = f"https://api.spotify.com/v1/playlists/{old_playlist_id}/tracks"
+    for i in range(0, len(liked_songs), 100):
+        batch = liked_songs[i:i + 100]
+        requests.post(add_tracks_url, headers=headers, json={'uris': batch})
+
+    # Remove the old liked songs from the user's liked songs
+    remove_tracks_url = 'https://api.spotify.com/v1/me/tracks'
+    for i in range(0, len(liked_songs), 50):
+        batch = liked_songs[i:i + 50]
+        requests.delete(remove_tracks_url, headers=headers, json={'ids': [uri.split(':')[-1] for uri in batch]})
+
+    print(f"Moved {len(liked_songs)} songs to 'Old Liked Songs' and removed from Liked Songs.")
+
 @app.route('/add_songs', methods=['GET'])
 def add_songs():
     access_token = request.args.get('access_token')
@@ -109,6 +167,9 @@ def add_songs():
             'status_code': token_check.status_code,
             'details': token_check.json()
         }), 401
+
+    # Move old liked songs to a new playlist
+    move_old_liked_songs(access_token)
 
     # Fetch all favorited albums
     favorited_albums = fetch_all_favorited_albums(access_token)
