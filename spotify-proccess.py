@@ -2,6 +2,11 @@ import requests
 from flask import Flask, redirect, request, session, url_for
 from dotenv import load_dotenv
 import os
+from flask_cors import CORS
+from flask import jsonify
+
+app = Flask(__name__)
+CORS(app)  # This allows requests from any domain
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
@@ -31,8 +36,10 @@ def callback():
         'client_secret': SPOTIFY_CLIENT_SECRET
     }
     token_response = requests.post(TOKEN_URL, data=token_data).json()
-    session['access_token'] = token_response['access_token']
-    return redirect(url_for('add_songs'))
+
+    # Return the access token to the frontend
+    return jsonify({'access_token': token_response['access_token']})
+
 
 @app.route('/add_songs')
 def add_songs():

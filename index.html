@@ -37,19 +37,19 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.message) {
-                        alert(data.message);
-                    } else if (data.error) {
-                        alert('Error: ' + data.error);
+                    if (data.access_token) {
+                        // Store the token in local storage
+                        localStorage.setItem('spotify_access_token', data.access_token);
+                        alert("Logged in! Now running script...");
+                        // Call the function to add songs
+                        addSongsToSpotify(data.access_token);
+                    } else {
+                        alert('Error retrieving token.');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('There was an error processing your request. ' + error.message);
-                })
-                .finally(() => {
-                    // Hide the loading spinner
-                    document.getElementById('loading-spinner').style.display = 'none';
+                    alert('Error: ' + error.message);
                 });
             } else {
                 // No 'code', no callback, so no need to do anything
