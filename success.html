@@ -8,8 +8,21 @@
 <body>
     <h1>Success!</h1>
     <p id="message"></p>
+    <div id="navbar-placeholder"></div> 
 
     <script>
+
+        function loadNavbar() {
+            fetch('navbar.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('navbar-placeholder').innerHTML = data;
+                });
+        }
+
+        // Call the function to load the navbar
+        loadNavbar();
+
         // Function to get query parameters from the URL
         function getQueryParams() {
             const params = {};

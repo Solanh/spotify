@@ -1,0 +1,143 @@
+/* Navigation bar styles */
+nav {
+    display: flex;
+    justify-content: space-between; /* Keeps elements spaced out */
+    align-items: center;
+    padding: 10px;
+    background-color: #333;
+    color: white;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    font-family: 'Times New Roman', Times, serif; /* Set font to Times New Roman */
+}
+
+.nav-container {
+    flex: 1; /* Takes up remaining space between left and right */
+    display: flex;
+    justify-content: center; /* Ensures links are centered in this space */
+    gap: 15px;
+}
+
+/* Centering nav links */
+.nav-links {
+    display: flex;
+    gap: 15px;
+    flex-wrap: nowrap;
+    margin: 0 auto; /* Use margin auto to center within the flex container */
+}
+
+/* Social links should be on the right */
+.social-links {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-right: 30px;
+}
+
+/* Social logo size */
+.github-social-logo, .linkedin-social-logo {
+    width: 35px;
+    height: 35px;
+}
+
+/* Styles for links */
+.nav-links a {
+    color: white;
+    text-decoration: none;
+    padding: 10px;
+    white-space: nowrap;
+}
+
+.nav-links a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Hamburger menu styles */
+.menu {
+    display: flex;
+    align-items: center;
+}
+
+.menu div {
+    width: 25px;
+    height: 3px;
+    background-color: white;
+    margin: 4px 0;
+    transition: 0.4s;
+}
+
+/* Dropdown content styles */
+.menu-content {
+    display: none;
+    flex-direction: column;
+    background-color: #333;
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    width: 200px;
+    border: 1px solid #444;
+}
+
+.menu-content a {
+    padding: 10px;
+    border-bottom: 1px solid #444;
+    color: white;
+    text-decoration: none;
+}
+
+.menu-content a:hover {
+    background-color: #444;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .nav-links {
+        display: none;
+    }
+
+    .menu {
+        display: flex;
+    }
+
+    .menu-content {
+        display: none;
+        flex-direction: column;
+        background-color: #333;
+        position: absolute;
+        top: 50px;
+        right: 10px;
+        width: 200px;
+        border: 1px solid #444;
+    }
+
+    .menu-content a {
+        padding: 10px;
+        border-bottom: 1px solid #444;
+        color: white;
+        text-decoration: none;
+    }
+
+    .menu-content a:hover {
+        background-color: #444;
+    }
+}
+
+/* Dark theme */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: rgb(30, 30, 30);
+        color: white;
+    }
+    nav {
+        background-color: rgb(5, 5, 5);
+    }
+    nav .nav-links a {
+        color: white;
+    }
+    nav .nav-links a:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+}

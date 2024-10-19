@@ -7,11 +7,23 @@
     <link rel="stylesheet" href="index-styles.css"> <!-- Ensure the correct path to your CSS -->
 </head>
 <body>
+    <div id="navbar-placeholder"></div> <!-- Navbar placeholder -->
 
     <button type="button" id="run-button">Run</button>
     <div id="loading-spinner" class="spinner" style="display: none;">Loading...</div> <!-- Loading spinner -->
 
     <script>
+        function loadNavbar() {
+            fetch('navbar.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('navbar-placeholder').innerHTML = data;
+                });
+        }
+
+        // Call the function to load the navbar
+        loadNavbar();
+
         // Handle button click
         document.getElementById('run-button').addEventListener('click', function () {
             // Show the loading spinner

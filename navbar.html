@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navbar</title>
+    <link rel="stylesheet" href="css/navbar-styles.css"> <!-- Link to external CSS -->
+</head>
+<body>
+    <nav>
+        <div class="menu" onclick="toggleMenu()">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+        <div class="nav-container">
+            <div class="nav-links" id="navLinks">
+                <a href="solanh.github.io">Home</a>
+                <a href="index.html">Spotify</a>
+                
+            </div>
+            <div class="social-links">
+                <a href="https://github.com/yourusername" target="_blank">
+                    <img src="Images/github-mark-white.png" alt="GitHub" class="github-social-logo">
+                </a>
+                <a href="https://www.linkedin.com/in/yourusername" target="_blank">
+                    <img src="Images/LI-In-Bug.png" alt="LinkedIn" class="linkedin-social-logo">
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="menu-content" id="menuContent">
+        <!-- Overflowing items will be moved here -->
+    </div>
+
+    <script>
+        function toggleMenu() {
+            const menuContent = document.getElementById('menuContent');
+            if (menuContent.style.display === 'flex') {
+                menuContent.style.display = 'none';
+            } else {
+                menuContent.style.display = 'flex';
+            }
+        }
+
+        function handleOverflow() {
+            const navLinks = document.getElementById('navLinks');
+            const menuContent = document.getElementById('menuContent');
+            const navContainerWidth = navLinks.parentElement.clientWidth;
+            let totalWidth = 0;
+
+            Array.from(navLinks.children).forEach(link => {
+                totalWidth += link.offsetWidth;
+                if (totalWidth > navContainerWidth) {
+                    menuContent.appendChild(link);
+                }
+            });
+        }
+
+        window.addEventListener('resize', handleOverflow);
+        window.addEventListener('load', handleOverflow);
+    </script>
+</body>
+</html>

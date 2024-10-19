@@ -94,35 +94,45 @@ def add_songs():
         # Extract only the track ID from the URI
         track_uris += [track['uri'].split(':')[-1] for track in tracks_response['items']]
 
-# Check if there are any tracks to add
+    # Check if there are any tracks to add
     if not track_uris:
         print("No tracks found to add to liked songs.")  # Debugging
         return jsonify({'error': 'No tracks found to add to liked songs'}), 400
 
     print(f"Total tracks found: {len(track_uris)}")  # Debugging
 
-    # Add songs to liked songs
-    add_songs_url = 'https://api.spotify.com/v1/me/tracks'
-    for i in range(0, len(track_uris), 50):  # Spotify allows adding up to 50 songs per request
-        print(f"Adding the following track URIs: {track_uris[i:i+50]}")  # Debugging
-        response = requests.put(add_songs_url, headers=headers, json={'ids': track_uris[i:i+50]})
+    # Check which tracks are already liked
+    liked_tracks_url = 'https://api.spotify.com/v1/me/tracks/contains'
+    for i in range(0, len(track_uris), 50):  # Spotify allows up to 50 IDs per request
+        # Send a batch of track IDs to check if they are already in the user's library
+        track_batch = track_uris[i:i+50]
+        liked_response = requests.get(liked_tracks_url, headers=headers, params={'ids': ','.join(track_batch)}).json()
 
-        # Log the response for debugging
-        if response.status_code != 200:
-            print(f"Failed to add songs in batch {i//50 + 1}: {response.json()}")  # Debugging
-            if response.status_code == 429:  # Rate limited
-                retry_after = response.headers.get('Retry-After')
-                print(f"Rate limited. Retry after {retry_after} seconds.")  # Debugging
+        # Filter out already liked tracks
+        tracks_to_add = [track_uris[i+j] for j in range(len(liked_response)) if not liked_response[j]]
+
+        # Add only new tracks to liked songs
+        if tracks_to_add:
+            add_songs_url = 'https://api.spotify.com/v1/me/tracks'
+            print(f"Adding the following track URIs: {tracks_to_add}")  # Debugging
+            response = requests.put(add_songs_url, headers=headers, json={'ids': tracks_to_add})
+
+            # Log the response for debugging
+            if response.status_code != 200:
+                print(f"Failed to add songs in batch {i//50 + 1}: {response.json()}")  # Debugging
+                if response.status_code == 429:  # Rate limited
+                    retry_after = response.headers.get('Retry-After')
+                    print(f"Rate limited. Retry after {retry_after} seconds.")  # Debugging
+                    return jsonify({
+                        'error': 'Rate limited',
+                        'retry_after': retry_after
+                    }), 429
+
                 return jsonify({
-                    'error': 'Rate limited',
-                    'retry_after': retry_after
-                }), 429
-
-            return jsonify({
-                'error': f'Failed to add songs in batch {i//50 + 1}',
-                'status_code': response.status_code,
-                'details': response.json()
-            }), response.status_code
+                    'error': f'Failed to add songs in batch {i//50 + 1}',
+                    'status_code': response.status_code,
+                    'details': response.json()
+                }), response.status_code
 
     print("Songs added successfully.")  # Debugging
     return jsonify({'message': 'Songs added to Liked Songs!'})
