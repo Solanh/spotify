@@ -33,13 +33,13 @@ def callback():
         'client_secret': SPOTIFY_CLIENT_SECRET
     }
     token_response = requests.post(TOKEN_URL, data=token_data).json()
-
-    # Check for errors in token response
-    if 'access_token' in token_response:
-        session['access_token'] = token_response['access_token']
-        return jsonify({'access_token': token_response['access_token']})
-    else:
-        return jsonify({'error': 'Failed to fetch access token', 'details': token_response}), 400
+    access_token = token_response['access_token']
+    
+    # Store the access token in session for later use
+    session['access_token'] = access_token
+    
+    # Redirect back to your front-end with the access token as a query parameter
+    return redirect(f'https://solanh.github.io/?access_token={access_token}')
 
 @app.route('/add_songs')
 def add_songs():
