@@ -51,6 +51,8 @@ def add_songs():
     if not access_token:
         return jsonify({'error': 'Access token not found in session'}), 401
 
+    print("Access token found, proceeding to add songs.")  # Debugging
+
     headers = {
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
@@ -61,8 +63,10 @@ def add_songs():
     response = requests.get(albums_url, headers=headers).json()
 
     if 'items' not in response:
+        print(f"Failed to fetch albums: {response}")  # Debugging
         return jsonify({'error': 'Failed to fetch albums', 'details': response}), 400
 
+    print("Albums fetched successfully.")  # Debugging
     track_uris = []
 
     # Get tracks from each album
@@ -72,13 +76,17 @@ def add_songs():
         tracks_response = requests.get(album_tracks_url, headers=headers).json()
 
         if 'items' not in tracks_response:
+            print(f"Failed to fetch tracks for album {album_id}: {tracks_response}")  # Debugging
             return jsonify({'error': 'Failed to fetch tracks for album', 'album_id': album_id, 'details': tracks_response}), 400
 
         track_uris += [track['uri'] for track in tracks_response['items']]
 
     # Check if there are any tracks to add
     if not track_uris:
+        print("No tracks found to add to liked songs.")  # Debugging
         return jsonify({'error': 'No tracks found to add to liked songs'}), 400
+
+    print(f"Total tracks found: {len(track_uris)}")  # Debugging
 
     # Add songs to liked songs
     add_songs_url = 'https://api.spotify.com/v1/me/tracks'
@@ -87,12 +95,14 @@ def add_songs():
 
         # Log the response for debugging
         if response.status_code != 200:
+            print(f"Failed to add songs in batch {i//50 + 1}: {response.json()}")  # Debugging
             return jsonify({
                 'error': f'Failed to add songs in batch {i//50 + 1}',
                 'status_code': response.status_code,
                 'details': response.json()
             }), response.status_code
 
+    print("Songs added successfully.")  # Debugging
     return jsonify({'message': 'Songs added to Liked Songs!'})
 
 if __name__ == '__main__':
