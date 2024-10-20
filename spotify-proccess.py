@@ -199,34 +199,44 @@ def add_songs():
     # Move old liked songs to a new playlist
     move_old_liked_songs(access_token)
 
-    # Fetch all favorited albums
+    # Fetch all favorited albums in batches of 5 (customize based on need)
     favorited_albums = fetch_all_favorited_albums(access_token)
+    batch_size = 5
+    total_tracks = 0
+    processed_batches = 0
 
     if not favorited_albums:
         return jsonify({'error': 'No favorited albums found'}), 400
 
-    # Fetch tracks from each favorited album
-    all_track_uris = []
-    for album in favorited_albums:
-        album_id = album['album']['id']
-        album_tracks = fetch_all_tracks_from_album(album_id, access_token)
-        all_track_uris.extend(album_tracks)
+    # Process tracks in smaller batches
+    while processed_batches * batch_size < len(favorited_albums):
+        batch_albums = favorited_albums[processed_batches * batch_size:(processed_batches + 1) * batch_size]
+        all_track_uris = []
+        for album in batch_albums:
+            album_id = album['album']['id']
+            album_tracks = fetch_all_tracks_from_album(album_id, access_token)
+            all_track_uris.extend(album_tracks)
 
-    if not all_track_uris:
-        return jsonify({'error': 'No tracks found in favorited albums'}), 400
+        if not all_track_uris:
+            return jsonify({'error': f'No tracks found in favorited albums batch {processed_batches + 1}'}), 400
 
-    print(f"Total tracks found to add: {len(all_track_uris)}")
+        # Add songs to liked songs in batches of 50
+        add_songs_url = 'https://api.spotify.com/v1/me/tracks'
+        for i in range(0, len(all_track_uris), 50):
+            batch = all_track_uris[i:i + 50]
+            response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': [uri.split(':')[-1] for uri in batch]})
 
-    # Add songs to liked songs in batches of 50
-    add_songs_url = 'https://api.spotify.com/v1/me/tracks'
-    for i in range(0, len(all_track_uris), 50):
-        batch = all_track_uris[i:i + 50]
-        response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': [uri.split(':')[-1] for uri in batch]})
+            if response.status_code != 200:
+                print(f"Failed to add songs in batch {i // 50 + 1}: {response.json()}")
 
-        if response.status_code != 200:
-            print(f"Failed to add songs in batch {i//50 + 1}: {response.json()}")
+        total_tracks += len(all_track_uris)
+        processed_batches += 1
 
-    return jsonify({'message': f'Added {len(all_track_uris)} tracks to Liked Songs.'})
+        # Return partial results after processing each batch
+        print(f"Processed batch {processed_batches}. Added {len(all_track_uris)} tracks.")
+    
+    return jsonify({'message': f'Added {total_tracks} tracks to Liked Songs.'})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
