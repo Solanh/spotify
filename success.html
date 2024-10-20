@@ -13,6 +13,7 @@
 
     <script>
 
+        // Function to load the navbar from an external HTML file
         function loadNavbar() {
             fetch('navbar.html')
                 .then(response => response.text())
@@ -45,24 +46,27 @@
         // Display a message or use the token
         if (accessToken) {
             document.getElementById('message').innerText = "Access token found, adding songs...";
-            // Now you can perform an action with the access token, e.g., add songs
-            addSongs(accessToken);
+            // Start processing songs with polling
+            processNextBatch(accessToken, 0); // Start from offset 0
         } else {
             document.getElementById('message').innerText = "No access token found.";
         }
 
-        // Function to make a request to the backend to add songs
-        // Function to make a request to the backend to add songs
-        function addSongs(token) {
-            fetch(`https://nameless-ocean-47665-871e4574a92b.herokuapp.com/add_songs?access_token=${token}`, {
+        // Function to make requests to process batches of songs
+        function processNextBatch(token, offset) {
+            fetch(`https://nameless-ocean-47665-871e4574a92b.herokuapp.com/add_songs?access_token=${token}&offset=${offset}`, {
                 method: 'GET'
             })
             .then(response => response.json())
             .then(data => {
-                if (data.message) {
-                    document.getElementById('message').innerText = data.message;
-                } else if (data.error) {
-                    document.getElementById('message').innerText = 'Error: ' + data.error;
+                // Display the current batch processing message
+                document.getElementById('message').innerText = data.message;
+
+                // Check if there's another batch to process
+                if (data.next_offset !== undefined) {
+                    processNextBatch(token, data.next_offset); // Continue processing next batch
+                } else {
+                    document.getElementById('message').innerText = 'All albums processed!';
                 }
             })
             .catch(error => {
@@ -70,7 +74,6 @@
             });
         }
 
-        
     </script>
 </body>
 </html>

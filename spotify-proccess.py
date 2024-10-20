@@ -220,8 +220,9 @@ def move_old_liked_songs(access_token):
 # Route to handle adding songs to user's liked songs
 @app.route('/add_songs', methods=['GET'])
 def add_songs():
-    # Retrieve the access token from the request
+    # Retrieve the access token and offset from the request
     access_token = request.args.get('access_token')
+    offset = int(request.args.get('offset', 0))  # Start from the requested offset (defaults to 0)
 
     if not access_token:
         return jsonify({'error': 'Access token not provided in request'}), 401
@@ -242,49 +243,56 @@ def add_songs():
             'details': token_check.json()
         }), 401
 
-    # Move old liked songs to a new playlist
-    move_old_liked_songs(access_token)
+    # Move old liked songs to a new playlist (only do this once, not repeatedly in each batch)
+    if offset == 0:
+        move_old_liked_songs(access_token)
 
-    # Fetch all favorited albums in batches
+    # Fetch all favorited albums
     favorited_albums = fetch_all_favorited_albums(access_token)
     batch_size = 5  # Process albums in batches of 5
     total_tracks = 0  # Track total number of tracks added
-    processed_batches = 0  # Track number of batches processed
 
     if not favorited_albums:
         return jsonify({'error': 'No favorited albums found'}), 400
 
-    # Process tracks in smaller batches
-    while processed_batches * batch_size < len(favorited_albums):
-        # Get a batch of albums to process
-        batch_albums = favorited_albums[processed_batches * batch_size:(processed_batches + 1) * batch_size]
-        all_track_uris = []  # Store track URIs for the current batch
+    # Ensure the offset is within the list of favorited albums
+    if offset >= len(favorited_albums):
+        return jsonify({'message': 'All albums processed.'})
 
-        # Fetch tracks from each album in the batch
-        for album in batch_albums:
-            album_id = album['album']['id']
-            album_tracks = fetch_all_tracks_from_album(album_id, access_token)
-            all_track_uris.extend(album_tracks)
+    # Get a batch of albums to process based on the offset and batch size
+    batch_albums = favorited_albums[offset:offset + batch_size]
+    all_track_uris = []  # Store track URIs for the current batch
 
-        if not all_track_uris:
-            return jsonify({'error': f'No tracks found in favorited albums batch {processed_batches + 1}'}), 400
+    # Fetch tracks from each album in the current batch
+    for album in batch_albums:
+        album_id = album['album']['id']
+        album_tracks = fetch_all_tracks_from_album(album_id, access_token)
+        all_track_uris.extend(album_tracks)
 
-        # Add songs to liked songs in batches of 50
-        add_songs_url = 'https://api.spotify.com/v1/me/tracks'
-        for i in range(0, len(all_track_uris), 50):
-            batch = all_track_uris[i:i + 50]
-            response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': [uri.split(':')[-1] for uri in batch]})
+    if not all_track_uris:
+        return jsonify({'error': f'No tracks found in favorited albums batch starting at offset {offset}'}), 400
 
-            if response.status_code != 200:
-                print(f"Failed to add songs in batch {i // 50 + 1}: {response.json()}")
+    # Add songs to liked songs in batches of 50
+    add_songs_url = 'https://api.spotify.com/v1/me/tracks'
+    for i in range(0, len(all_track_uris), 50):
+        batch = all_track_uris[i:i + 50]
+        response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': [uri.split(':')[-1] for uri in batch]})
 
-        total_tracks += len(all_track_uris)  # Update total track count
-        processed_batches += 1  # Update processed batch count
+        if response.status_code != 200:
+            print(f"Failed to add songs in batch {i // 50 + 1}: {response.json()}")
 
-        # Return partial results after processing each batch
-        print(f"Processed batch {processed_batches}. Added {len(all_track_uris)} tracks.")
-    
-    return jsonify({'message': f'Added {total_tracks} tracks to Liked Songs.'})
+    total_tracks += len(all_track_uris)  # Update total track count
+
+    # Calculate the next offset for the next request
+    next_offset = offset + batch_size
+
+    # Return partial results and the next offset to the client
+    return jsonify({
+        'message': f'Processed batch starting at offset {offset}. Added {len(all_track_uris)} tracks.',
+        'next_offset': next_offset,
+        'total_tracks_added': total_tracks
+    }), 200
+
 
 
 # Run the app when executing the script
