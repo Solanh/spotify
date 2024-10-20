@@ -55,6 +55,22 @@ def handle_rate_limit(response):
         return True
     return False
 
+def make_request_with_rate_limit(url, headers, params=None, method="GET", json_data=None):
+    """Make a request to the Spotify API, handling rate limits and retries."""
+    while True:
+        if method == "GET":
+            response = requests.get(url, headers=headers, params=params)
+        elif method == "POST":
+            response = requests.post(url, headers=headers, json=json_data)
+        elif method == "DELETE":
+            response = requests.delete(url, headers=headers, json=json_data)
+        elif method == "PUT":
+            response = requests.put(url, headers=headers, json=json_data)
+
+        if handle_rate_limit(response):
+            continue
+        return response
+
 def fetch_all_favorited_albums(access_token):
     headers = {
         'Authorization': f'Bearer {access_token}',
@@ -67,11 +83,7 @@ def fetch_all_favorited_albums(access_token):
 
     # Fetch albums in paginated requests (50 albums per request)
     while True:
-        response = requests.get(albums_url, headers=headers, params={'limit': 50, 'offset': offset})
-        
-        if handle_rate_limit(response):
-            continue
-
+        response = make_request_with_rate_limit(albums_url, headers, params={'limit': 50, 'offset': offset})
         response_json = response.json()
         if 'items' not in response_json or len(response_json['items']) == 0:
             break
@@ -93,11 +105,7 @@ def fetch_all_tracks_from_album(album_id, access_token):
 
     # Fetch tracks in paginated requests (50 tracks per request)
     while True:
-        response = requests.get(album_tracks_url, headers=headers, params={'limit': 50, 'offset': offset})
-        
-        if handle_rate_limit(response):
-            continue
-
+        response = make_request_with_rate_limit(album_tracks_url, headers, params={'limit': 50, 'offset': offset})
         response_json = response.json()
         if 'items' not in response_json or len(response_json['items']) == 0:
             break
@@ -115,11 +123,7 @@ def move_old_liked_songs(access_token):
 
     # Check if the "Old Liked Songs" playlist exists
     playlists_url = 'https://api.spotify.com/v1/me/playlists'
-    response = requests.get(playlists_url, headers=headers)
-    
-    if handle_rate_limit(response):
-        return jsonify({'message': 'Rate limited while fetching playlists. Try again later.'}), 429
-
+    response = make_request_with_rate_limit(playlists_url, headers)
     for playlist in response.json()['items']:
         if playlist['name'] == 'Old Liked Songs':
             print("Old Liked Songs playlist already exists. Skipping creation.")
@@ -131,14 +135,11 @@ def move_old_liked_songs(access_token):
     offset = 0
 
     while True:
-        response = requests.get(liked_songs_url, headers=headers, params={'limit': 50, 'offset': offset})
-        
-        if handle_rate_limit(response):
-            continue
-
-        if not response.json()['items']:
+        response = make_request_with_rate_limit(liked_songs_url, headers, params={'limit': 50, 'offset': offset})
+        response_json = response.json()
+        if not response_json['items']:
             break
-        liked_songs.extend([item['track']['uri'] for item in response.json()['items']])
+        liked_songs.extend([item['track']['uri'] for item in response_json['items']])
         offset += 50
 
     if not liked_songs:
@@ -147,38 +148,28 @@ def move_old_liked_songs(access_token):
 
     # Create a new playlist called "Old Liked Songs"
     user_profile_url = 'https://api.spotify.com/v1/me'
-    user_profile = requests.get(user_profile_url, headers=headers).json()
+    user_profile = make_request_with_rate_limit(user_profile_url, headers).json()
     create_playlist_url = f"https://api.spotify.com/v1/users/{user_profile['id']}/playlists"
     payload = {
         "name": "Old Liked Songs",
         "description": "All your old liked songs moved from Liked Songs",
         "public": False
     }
-    create_response = requests.post(create_playlist_url, headers=headers, json=payload)
-    
-    if handle_rate_limit(create_response):
-        return jsonify({'message': 'Rate limited while creating playlist. Try again later.'}), 429
-    
+    create_response = make_request_with_rate_limit(create_playlist_url, headers, method="POST", json_data=payload)
     old_playlist_id = create_response.json()['id']
     print(f"Created new playlist 'Old Liked Songs'.")
 
-    # Add the liked songs to the new playlist
+    # Add the liked songs to the new playlist in batches of 100
     add_tracks_url = f"https://api.spotify.com/v1/playlists/{old_playlist_id}/tracks"
     for i in range(0, len(liked_songs), 100):
         batch = liked_songs[i:i + 100]
-        response = requests.post(add_tracks_url, headers=headers, json={'uris': batch})
-        
-        if handle_rate_limit(response):
-            continue
+        make_request_with_rate_limit(add_tracks_url, headers, method="POST", json_data={'uris': batch})
 
-    # Remove the old liked songs from the user's liked songs
+    # Remove the old liked songs from the user's liked songs in batches of 50
     remove_tracks_url = 'https://api.spotify.com/v1/me/tracks'
     for i in range(0, len(liked_songs), 50):
         batch = liked_songs[i:i + 50]
-        response = requests.delete(remove_tracks_url, headers=headers, json={'ids': [uri.split(':')[-1] for uri in batch]})
-        
-        if handle_rate_limit(response):
-            continue
+        make_request_with_rate_limit(remove_tracks_url, headers, method="DELETE", json_data={'ids': [uri.split(':')[-1] for uri in batch]})
 
     print(f"Moved {len(liked_songs)} songs to 'Old Liked Songs' and removed from Liked Songs.")
 
@@ -196,7 +187,7 @@ def add_songs():
 
     # Check if the access token is valid
     token_info_url = 'https://api.spotify.com/v1/me'
-    token_check = requests.get(token_info_url, headers=headers)
+    token_check = make_request_with_rate_limit(token_info_url, headers)
 
     if token_check.status_code != 200:
         return jsonify({
@@ -230,10 +221,7 @@ def add_songs():
     add_songs_url = 'https://api.spotify.com/v1/me/tracks'
     for i in range(0, len(all_track_uris), 50):
         batch = all_track_uris[i:i + 50]
-        response = requests.put(add_songs_url, headers=headers, json={'ids': [uri.split(':')[-1] for uri in batch]})
-        
-        if handle_rate_limit(response):
-            continue
+        response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': [uri.split(':')[-1] for uri in batch]})
 
         if response.status_code != 200:
             print(f"Failed to add songs in batch {i//50 + 1}: {response.json()}")
