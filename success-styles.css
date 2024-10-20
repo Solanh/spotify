@@ -1,4 +1,10 @@
 body {
+    display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    font-family: 'Times New Roman', Times, serif; /* Set font to Times New Roman */
 }
