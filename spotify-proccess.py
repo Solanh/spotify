@@ -253,7 +253,6 @@ def check_liked_songs(track_uris, access_token):
 
 
 
-# Route to handle adding songs to user's liked songs
 @app.route('/add_songs', methods=['GET'])
 def add_songs():
     # Retrieve the access token and offset from the request
@@ -281,7 +280,7 @@ def add_songs():
 
     # Fetch all favorited albums
     favorited_albums = fetch_all_favorited_albums(access_token)
-    batch_size = 2  # Process albums in batches of 2 (reduced to optimize for large sets)
+    batch_size = 5  # Process albums in batches of 5
     total_tracks = 0  # Track total number of tracks added
 
     if not favorited_albums:
@@ -301,18 +300,21 @@ def add_songs():
         album_tracks = fetch_all_tracks_from_album(album_id, access_token)
         all_track_uris.extend(album_tracks)
 
-        # Add a delay between processing each album to prevent rate limits
-        time.sleep(1)
+    # Debugging: Ensure track URIs are being collected
+    print(f"Collected track URIs from albums: {all_track_uris}")
 
     if not all_track_uris:
         return jsonify({'error': f'No tracks found in favorited albums batch starting at offset {offset}'}), 400
 
     # Check which tracks are already liked
     liked_status = check_liked_songs(all_track_uris, access_token)
-    print(liked_status)
+    print(f"Liked status for the tracks: {liked_status}")
 
     # Filter out tracks that are already liked
     tracks_to_add = [uri for uri, liked in zip(all_track_uris, liked_status) if not liked]
+
+    # Debugging: Show which tracks are being attempted for addition
+    print(f"Tracks to be added: {tracks_to_add}")
 
     if not tracks_to_add:
         return jsonify({
@@ -329,11 +331,10 @@ def add_songs():
 
         if response.status_code != 200:
             print(f"Failed to add songs in batch {i // 50 + 1}: {response.json()}")
+        else:
+            print(f"Successfully added {len(batch)} tracks!")
 
     total_tracks += len(tracks_to_add)  # Update total track count
-
-    # Add a delay between each batch of albums to avoid rate limits
-    time.sleep(1)
 
     # Calculate the next offset for the next request
     next_offset = offset + batch_size
@@ -344,6 +345,7 @@ def add_songs():
         'next_offset': next_offset,
         'total_tracks_added': total_tracks
     }), 200
+
 
 
 
