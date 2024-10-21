@@ -152,6 +152,7 @@ def fetch_all_tracks_from_album(album_id, access_token):
         offset += 50  # Move to the next set of tracks for pagination
 
     print(f"Tracks fetched from album {album_id}: {len(all_tracks)}")
+    print(len(all_tracks))
     return [track['uri'] for track in all_tracks]  # Return the URIs of the tracks
 
 # Function to move all old liked songs to a new playlist
