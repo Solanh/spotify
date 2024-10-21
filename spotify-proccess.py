@@ -285,7 +285,9 @@ def add_songs():
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
     }
+    
     move_old_liked_songs(access_token)  # Move old liked songs to a new playlist
+    
     # Check if access token is valid by hitting the /me endpoint
     token_info_url = 'https://api.spotify.com/v1/me'
     token_check = make_request_with_rate_limit(token_info_url, headers)
@@ -346,9 +348,10 @@ def add_songs():
         # Check liked status of the tracks
         liked_status = check_liked_songs(track_uris, access_token)
         
-        # Log each track and its liked status
+        # Log only tracks that are not yet liked
         for name, uri, liked in zip(track_names, track_uris, liked_status):
-            print(f"Track: {name} (URI: {uri}) - Liked: {'Yes' if liked else 'No'}")
+            if not liked:
+                print(f"Track: {name} (URI: {uri}) will be added to 'Liked Songs'.")
 
         # Filter out tracks that are not liked yet
         tracks_to_add = [uri for uri, liked in zip(track_uris, liked_status) if not liked]
@@ -365,7 +368,7 @@ def add_songs():
                 response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': batch_ids})
 
                 if response.status_code != 200:
-                    print(f"Failed to add batch {i // 50 + 1}: {response.json()}")
+                    print(f"Failed to add batch {i // 50 + 1}: {response.status_code}")
                 else:
                     total_tracks += len(batch)
                     print(f"Added {len(batch)} tracks to 'Liked Songs'. Batch {i // 50 + 1}.")
