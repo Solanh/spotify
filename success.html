@@ -21,40 +21,40 @@
                     document.getElementById('navbar-placeholder').innerHTML = data;
                 });
         }
-
+    
         // Call the function to load the navbar
         loadNavbar();
-
+    
         // Function to get query parameters from the URL
         function getQueryParams() {
             const params = {};
             const queryString = window.location.search.substring(1);
             const queryArray = queryString.split('&');
-
+    
             queryArray.forEach(function (param) {
                 const [key, value] = param.split('=');
                 params[key] = decodeURIComponent(value);
             });
-
+    
             return params;
         }
-
+    
         // Get the access token from the URL
         const params = getQueryParams();
         const accessToken = params['access_token'];
-
+    
         // Display a message or use the token
         if (accessToken) {
             document.getElementById('message').innerText = "Access token found, adding songs...";
             document.getElementById('spinner').style.display = 'block'; // Show the spinner
-
+    
             // Start processing songs with polling (starting from offset 0)
             processNextBatch(accessToken, 0);
         } else {
             document.getElementById('message').innerText = "No access token found.";
             document.getElementById('spinner').style.display = 'none'; // Hide the spinner if no token is present
         }
-
+    
         // Function to process the next batch of songs from the backend
         function processNextBatch(accessToken, offset) {
             const backendUrl = 'https://nameless-ocean-47665-871e4574a92b.herokuapp.com/add_songs';
@@ -68,9 +68,17 @@
                         document.getElementById('spinner').style.display = 'none'; // Hide the spinner on error
                     } else {
                         // Display the current status of the process
-                        const message = `${data.message} Processed ${data.total_tracks_added} tracks so far.`;
-                        document.getElementById('message').innerText = message;
-        
+                        const statusElement = document.getElementById('status');
+    
+                        // Show album and track information concisely
+                        const album = data.album ? data.album : "Unknown album";
+                        const tracks = data.tracks ? data.tracks.length : 0;
+                        const addedTracks = data.tracks_added ? data.tracks_added : 0;
+                        
+                        statusElement.innerHTML += `<p>Processing album: <strong>${album}</strong></p>`;
+                        statusElement.innerHTML += `<p>Tracks in album: ${tracks}</p>`;
+                        statusElement.innerHTML += `<p>Tracks added to Liked Songs: ${addedTracks}</p>`;
+    
                         // Check if there's more work to do and if so, continue processing
                         if (data.next_offset !== undefined && data.next_offset < data.total_albums) {
                             // Update the UI to indicate we're moving to the next batch
@@ -89,8 +97,7 @@
                     console.error('Error:', error);
                 });
         }
-        
-
     </script>
+    
 </body>
 </html>

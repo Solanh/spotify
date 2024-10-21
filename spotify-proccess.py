@@ -315,6 +315,10 @@ def add_songs():
             continue  # Skip this entry if the album data is malformed
 
         album_id = album['album']['id']
+        album_name = album['album']['name']
+
+        # Log the album being processed
+        print(f"Processing album: {album_name} (ID: {album_id})")
 
         # Check if the album has already been processed
         if album_id in processed_albums:
@@ -333,6 +337,7 @@ def add_songs():
 
         # Extract URIs of tracks that are not already liked
         track_uris = [track['uri'] for track in album_tracks if 'uri' in track]
+        track_names = [track['name'] for track in album_tracks if 'name' in track]
 
         if not track_uris:
             offset += 1
@@ -340,6 +345,12 @@ def add_songs():
 
         # Check liked status of the tracks
         liked_status = check_liked_songs(track_uris, access_token)
+        
+        # Log each track and its liked status
+        for name, uri, liked in zip(track_names, track_uris, liked_status):
+            print(f"Track: {name} (URI: {uri}) - Liked: {'Yes' if liked else 'No'}")
+
+        # Filter out tracks that are not liked yet
         tracks_to_add = [uri for uri, liked in zip(track_uris, liked_status) if not liked]
 
         if tracks_to_add:
@@ -357,7 +368,7 @@ def add_songs():
                     print(f"Failed to add batch {i // 50 + 1}: {response.json()}")
                 else:
                     total_tracks += len(batch)
-                    print(f"Successfully added {len(batch)} tracks in batch {i // 50 + 1}.")
+                    print(f"Added {len(batch)} tracks to 'Liked Songs'. Batch {i // 50 + 1}.")
 
         # Move to the next album
         offset += 1
