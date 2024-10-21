@@ -234,7 +234,7 @@ def check_liked_songs(track_uris, access_token):
 
     liked_status = []
     total_tracks = len(track_ids)  # Total number of tracks to check
-    batch_size = 50  # Spotify API limit for 'contains' endpoint
+    batch_size = 20  # Spotify API limit for 'contains' endpoint
     for i in range(0, total_tracks, batch_size):  # Process in batches of 50
         batch = track_ids[i:i + batch_size]  # Current batch of track IDs
         response = make_request_with_rate_limit(liked_tracks_url, headers, params={'ids': ','.join(batch)})
