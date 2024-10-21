@@ -227,6 +227,7 @@ def check_liked_songs(track_uris, access_token):
     }
 
     track_ids = [uri.split(':')[-1] for uri in track_uris]  # Extract track IDs
+    print(f"Checking liked status for tracks with IDs: {track_ids}")
 
     liked_tracks_url = 'https://api.spotify.com/v1/me/tracks/contains'
 
@@ -238,11 +239,15 @@ def check_liked_songs(track_uris, access_token):
         if response.status_code != 200:
             print(f"Failed to check liked songs in batch {i // 50 + 1}: {response.json()}")
             return []
-        print(f"Checking liked status for batch {i // 50 + 1}: {batch}")
-        print(f"Spotify response for liked status: {response.json()}")
+
+        # Debugging: Log the response from Spotify
+        print(f"Spotify liked status response for batch {i // 50 + 1}: {response.json()}")
+
         liked_status.extend(response.json())  # Extend liked status with results
 
+    print(f"Final liked status: {liked_status}")
     return liked_status
+
 
 # Route to handle adding songs to user's liked songs
 @app.route('/add_songs', methods=['GET'])
@@ -252,8 +257,11 @@ def add_songs():
     offset = int(request.args.get('offset', 0))  # Start from the requested offset (defaults to 0)
 
     if not access_token:
+        print("Access token not provided in request")
         return jsonify({'error': 'Access token not provided in request'}), 401
 
+    print(f"Access token retrieved: {access_token}")
+    
     headers = {
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
@@ -262,13 +270,16 @@ def add_songs():
     # Verify that the access token is valid
     token_info_url = 'https://api.spotify.com/v1/me'
     token_check = make_request_with_rate_limit(token_info_url, headers)
-
+    
     if token_check.status_code != 200:
+        print(f"Invalid access token or permissions: {token_check.json()}")
         return jsonify({
             'error': 'Invalid access token or permissions',
             'status_code': token_check.status_code,
             'details': token_check.json()
         }), 401
+
+    print("Access token is valid")
 
     # Fetch all favorited albums
     favorited_albums = fetch_all_favorited_albums(access_token)
@@ -276,14 +287,20 @@ def add_songs():
     total_tracks = 0  # Track total number of tracks added
 
     if not favorited_albums:
+        print("No favorited albums found")
         return jsonify({'error': 'No favorited albums found'}), 400
+
+    print(f"Total favorited albums: {len(favorited_albums)}")
 
     # Ensure the offset is within the list of favorited albums
     if offset >= len(favorited_albums):
+        print("All albums processed.")
         return jsonify({'message': 'All albums processed.'})
 
     # Get a batch of albums to process based on the offset and batch size
     batch_albums = favorited_albums[offset:offset + batch_size]
+    print(f"Processing batch of albums starting at offset {offset}. Number of albums in batch: {len(batch_albums)}")
+
     all_track_uris = []  # Store track URIs for the current batch
 
     # Fetch tracks from each album in the current batch
@@ -291,17 +308,24 @@ def add_songs():
         album_id = album['album']['id']
         album_tracks = fetch_all_tracks_from_album(album_id, access_token)
         all_track_uris.extend(album_tracks)
+        print(f"Fetched {len(album_tracks)} tracks from album {album_id}")
 
     if not all_track_uris:
+        print(f"No tracks found in favorited albums batch starting at offset {offset}")
         return jsonify({'error': f'No tracks found in favorited albums batch starting at offset {offset}'}), 400
+
+    print(f"Total tracks fetched: {len(all_track_uris)}")
 
     # Check which tracks are already liked
     liked_status = check_liked_songs(all_track_uris, access_token)
+    print(f"Liked status for tracks: {liked_status}")
 
     # Filter out tracks that are already liked
     tracks_to_add = [uri for uri, liked in zip(all_track_uris, liked_status) if not liked]
+    print(f"Tracks to add: {len(tracks_to_add)}")
 
     if not tracks_to_add:
+        print(f"All tracks in this batch are already liked.")
         return jsonify({
             'message': f'All tracks in this batch are already liked.',
             'next_offset': offset + batch_size,
@@ -312,15 +336,20 @@ def add_songs():
     add_songs_url = 'https://api.spotify.com/v1/me/tracks'
     for i in range(0, len(tracks_to_add), 50):
         batch = tracks_to_add[i:i + 50]
+        print(f"Adding batch {i // 50 + 1}: {batch}")
         response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': [uri.split(':')[-1] for uri in batch]})
 
         if response.status_code != 200:
             print(f"Failed to add songs in batch {i // 50 + 1}: {response.json()}")
+        else:
+            print(f"Successfully added songs in batch {i // 50 + 1}")
 
     total_tracks += len(tracks_to_add)  # Update total track count
+    print(f"Total tracks added: {total_tracks}")
 
     # Calculate the next offset for the next request
     next_offset = offset + batch_size
+    print(f"Next offset: {next_offset}")
 
     # Return partial results and the next offset to the client
     return jsonify({
@@ -328,6 +357,7 @@ def add_songs():
         'next_offset': next_offset,
         'total_tracks_added': total_tracks
     }), 200
+
 
 
 
