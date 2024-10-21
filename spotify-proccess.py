@@ -225,19 +225,22 @@ def check_liked_songs(track_uris, access_token):
         'Content-Type': 'application/json'
     }
 
-    # Spotify API requires track IDs, so we extract them from the URIs
-    track_ids = [uri.split(':')[-1] for uri in track_uris]
+    track_ids = [uri.split(':')[-1] for uri in track_uris]  # Extract track IDs
 
-    # Spotify allows checking a maximum of 50 tracks at a time
     liked_tracks_url = 'https://api.spotify.com/v1/me/tracks/contains'
-    response = make_request_with_rate_limit(liked_tracks_url, headers, params={'ids': ','.join(track_ids)})
 
-    if response.status_code != 200:
-        print(f"Failed to check liked songs: {response.json()}")
-        return []
+    liked_status = []
+    for i in range(0, len(track_ids), 50):  # Process in batches of 50
+        batch = track_ids[i:i + 50]
+        response = make_request_with_rate_limit(liked_tracks_url, headers, params={'ids': ','.join(batch)})
+        
+        if response.status_code != 200:
+            print(f"Failed to check liked songs in batch {i // 50 + 1}: {response.json()}")
+            return []
 
-    # The API returns a list of booleans indicating whether each track is liked
-    return response.json()
+        liked_status.extend(response.json())  # Extend liked status with results
+
+    return liked_status
 
 # Route to handle adding songs to user's liked songs
 @app.route('/add_songs', methods=['GET'])
