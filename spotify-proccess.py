@@ -281,7 +281,7 @@ def add_songs():
 
     # Fetch all favorited albums
     favorited_albums = fetch_all_favorited_albums(access_token)
-    batch_size = 5  # Process albums in batches of 5
+    batch_size = 2  # Process albums in batches of 2 (reduced to optimize for large sets)
     total_tracks = 0  # Track total number of tracks added
 
     if not favorited_albums:
@@ -300,6 +300,9 @@ def add_songs():
         album_id = album['album']['id']
         album_tracks = fetch_all_tracks_from_album(album_id, access_token)
         all_track_uris.extend(album_tracks)
+
+        # Add a delay between processing each album to prevent rate limits
+        time.sleep(1)
 
     if not all_track_uris:
         return jsonify({'error': f'No tracks found in favorited albums batch starting at offset {offset}'}), 400
@@ -329,6 +332,9 @@ def add_songs():
 
     total_tracks += len(tracks_to_add)  # Update total track count
 
+    # Add a delay between each batch of albums to avoid rate limits
+    time.sleep(1)
+
     # Calculate the next offset for the next request
     next_offset = offset + batch_size
 
@@ -338,6 +344,7 @@ def add_songs():
         'next_offset': next_offset,
         'total_tracks_added': total_tracks
     }), 200
+
 
 
 
