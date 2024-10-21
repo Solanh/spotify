@@ -278,6 +278,31 @@ def callback():
     # Redirect back to the frontend with the access token as a query parameter
     return redirect(f'https://solanh.github.io/spotify/success.html?access_token={access_token}')
 
+
+def add_tracks_to_liked_songs(track_uris, access_token):
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+
+    # Spotify limits adding a maximum of 50 tracks per request
+    add_songs_url = 'https://api.spotify.com/v1/me/tracks'
+
+    # Process the track URIs in batches of 50
+    for i in range(0, len(track_uris), 50):
+        batch = track_uris[i:i + 50]
+        batch_ids = [uri.split(':')[-1] for uri in batch]  # Extract track IDs from URIs
+        
+        # Make the request to add the batch of tracks
+        response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': batch_ids})
+
+        if response.status_code == 200:
+            print(f"Successfully added {len(batch)} tracks to 'Liked Songs'.")
+            session['total_tracks_added'] = session.get('total_tracks_added', 0) + len(batch)
+        else:
+            print(f"Failed to add batch {i // 50 + 1}: {response.status_code} - {response.json()}")
+
+
 # Route to handle adding songs to user's liked songs
 @app.route('/add_songs', methods=['GET'])
 def add_songs():
