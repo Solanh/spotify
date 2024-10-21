@@ -307,9 +307,10 @@ def add_tracks_to_liked_songs(track_uris, access_token):
 @app.route('/add_songs', methods=['GET'])
 def add_songs():
     access_token = request.args.get('access_token')
-
     if not access_token:
         return jsonify({'error': 'Access token not provided in request'}), 401
+
+    move_old_liked_songs(access_token)
 
     session['processed_albums'] = 0
     session['total_albums'] = 0
@@ -334,9 +335,16 @@ def add_songs():
         album_tracks = fetch_all_tracks_from_album(album_id, access_token)
         track_uris = [track['uri'] for track in album_tracks if 'uri' in track]
 
-        # Add tracks to user's liked songs
         if track_uris:
-            add_tracks_to_liked_songs(track_uris, access_token)
+            # Check which tracks are already liked
+            liked_status = check_liked_songs(track_uris, access_token)
+
+            # Filter out already liked songs
+            tracks_to_add = [uri for uri, liked in zip(track_uris, liked_status) if not liked]
+
+            # Add only the tracks that are not already liked
+            if tracks_to_add:
+                add_tracks_to_liked_songs(tracks_to_add, access_token)
 
         # Update session with progress
         session['processed_albums'] += 1
