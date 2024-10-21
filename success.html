@@ -46,20 +46,47 @@
         if (accessToken) {
             document.getElementById('message').innerText = "Access token found, adding songs...";
             document.getElementById('spinner').style.display = 'block'; // Show the spinner
-            // Start processing songs with polling
-            processNextBatch(accessToken, 0); // Start from offset 0
+
+            // Start processing songs with polling (starting from offset 0)
+            processNextBatch(accessToken, 0);
         } else {
             document.getElementById('message').innerText = "No access token found.";
+            document.getElementById('spinner').style.display = 'none'; // Hide the spinner if no token is present
         }
 
-        // Function to process the next batch of songs
+        // Function to process the next batch of songs from the backend
         function processNextBatch(accessToken, offset) {
-            // Simulate an API call to process songs
-            setTimeout(() => {
-                // Simulate the completion of the backend script
-                document.getElementById('spinner').style.display = 'none'; // Hide the spinner
-                document.getElementById('message').innerText = "Songs added successfully!";
-            }, 3000); // Simulate a delay of 3 seconds
+            // Replace with your backend URL
+            const backendUrl = 'https://your-backend-url/add_songs';
+
+            // Make an API request to process the next batch of songs
+            fetch(`${backendUrl}?access_token=${accessToken}&offset=${offset}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        // Display an error message if something goes wrong
+                        document.getElementById('message').innerText = `Error: ${data.error}`;
+                        document.getElementById('spinner').style.display = 'none'; // Hide the spinner on error
+                    } else {
+                        // Update the UI with the message from the backend
+                        document.getElementById('message').innerText = data.message;
+
+                        // If there is more work to do, process the next batch
+                        if (data.next_offset !== undefined && data.next_offset < data.total_albums) {
+                            processNextBatch(accessToken, data.next_offset); // Recursive call to process the next batch
+                        } else {
+                            // No more batches to process
+                            document.getElementById('spinner').style.display = 'none'; // Hide the spinner
+                            document.getElementById('message').innerText = `Successfully added ${data.total_tracks_added} tracks!`;
+                        }
+                    }
+                })
+                .catch(error => {
+                    // Handle any errors during the fetch request
+                    document.getElementById('message').innerText = `Error processing batch: ${error}`;
+                    document.getElementById('spinner').style.display = 'none'; // Hide the spinner on error
+                    console.error('Error:', error);
+                });
         }
     </script>
 </body>
