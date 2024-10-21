@@ -140,20 +140,37 @@ def fetch_all_tracks_from_album(album_id, access_token):
 
     # Fetch tracks in paginated requests (limit 50 per request)
     while True:
-        response = make_request_with_rate_limit(album_tracks_url, headers, params={'limit': 50, 'offset': offset})
-        response_json = response.json()
+        try:
+            response = make_request_with_rate_limit(album_tracks_url, headers, params={'limit': 50, 'offset': offset})
+            response_json = response.json()
 
-        # Stop fetching if no more tracks are found
-        if 'items' not in response_json or len(response_json['items']) == 0:
+            # Log the response for debugging
+            print(f"Response JSON for album {album_id}: {response_json}")
+
+            # Stop fetching if no more tracks are found or response is not as expected
+            if 'items' not in response_json:
+                print(f"Unexpected response format or no items found for album {album_id}.")
+                break
+
+            # Add the fetched tracks to the list
+            all_tracks.extend(response_json['items'])
+
+            # If less than 50 tracks were returned, it means we're at the end
+            if len(response_json['items']) < 50:
+                break
+
+            # Move to the next set of tracks for pagination
+            offset += 50
+
+        except Exception as e:
+            print(f"Error fetching tracks for album {album_id}: {str(e)}")
             break
 
-        # Add the fetched tracks to the list
-        all_tracks.extend(response_json['items'])
-        offset += 50  # Move to the next set of tracks for pagination
+    print(f"Total tracks fetched from album {album_id}: {len(all_tracks)}")
 
-    print(f"Tracks fetched from album {album_id}: {len(all_tracks)}")
-    print(len(all_tracks))
-    return [track['uri'] for track in all_tracks]  # Return the URIs of the tracks
+    # Safely return URIs, ensuring only valid tracks with 'uri' are processed
+    return [track['uri'] for track in all_tracks if 'uri' in track]  # Return the URIs of the tracks
+
 
 # Function to move all old liked songs to a new playlist
 def move_old_liked_songs(access_token):
@@ -269,6 +286,7 @@ def add_songs():
         'Content-Type': 'application/json'
     }
 
+    # Check if access token is valid by hitting the /me endpoint
     token_info_url = 'https://api.spotify.com/v1/me'
     token_check = make_request_with_rate_limit(token_info_url, headers)
 
@@ -279,60 +297,60 @@ def add_songs():
             'details': token_check.json()
         }), 401
 
+    # Fetch all favorited albums
     favorited_albums = fetch_all_favorited_albums(access_token)
     if not favorited_albums:
         return jsonify({'error': 'No favorited albums found'}), 400
 
-    processed_albums = set()  # Store albums that have already been processed
-    batch_size = 1
+    processed_albums = set()  # Keep track of processed albums
     total_tracks = 0
 
     while offset < len(favorited_albums):
-        # Get the next album to process
+        # Get the current album to process
         album = favorited_albums[offset]
         album_id = album['album']['id']
 
         # Check if the album has already been processed
         if album_id in processed_albums:
-            offset += batch_size  # Move to the next album
-            continue  # Skip already processed albums
+            offset += 1
+            continue
 
-        # Mark this album as processed
+        # Mark album as processed
         processed_albums.add(album_id)
-        
+
         # Fetch all tracks from the album
         album_tracks = fetch_all_tracks_from_album(album_id, access_token)
         track_uris = [track['uri'] for track in album_tracks]
 
         if not track_uris:
-            return jsonify({'error': f'No tracks found in album {album_id}'}), 400
+            offset += 1
+            continue  # Skip if no tracks found in the album
 
-        # Check if the tracks are already liked
+        # Check liked status of the tracks
         liked_status = check_liked_songs(track_uris, access_token)
         tracks_to_add = [uri for uri, liked in zip(track_uris, liked_status) if not liked]
 
         if tracks_to_add:
             add_songs_url = 'https://api.spotify.com/v1/me/tracks'
-            for i in range(0, len(tracks_to_add), 50):  # Add songs in batches of 50 (Spotify limit)
+            
+            # Add songs in batches of 50 (Spotify's batch limit)
+            for i in range(0, len(tracks_to_add), 50):
                 batch = tracks_to_add[i:i + 50]
                 response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': [uri.split(':')[-1] for uri in batch]})
                 
                 if response.status_code != 200:
-                    print(f"Failed to add songs in batch {i // 50 + 1}: {response.json()}")
+                    print(f"Failed to add batch {i // 50 + 1}: {response.json()}")
                 else:
                     total_tracks += len(batch)
-                    print(f"Successfully added {len(batch)} tracks!")
+                    print(f"Successfully added {len(batch)} tracks in batch {i // 50 + 1}.")
 
-        # Increment the offset to process the next album
-        offset += batch_size
+        # Move to the next album
+        offset += 1
 
     return jsonify({
         'message': 'All albums processed and tracks added successfully.',
         'total_tracks_added': total_tracks
     }), 200
-
-
-
 
 
 
