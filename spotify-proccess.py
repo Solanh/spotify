@@ -362,6 +362,7 @@ def add_songs():
                     print(f"Added {len(batch)} tracks to 'Liked Songs'. Batch {i // 50 + 1}.")
 
         # Move to the next album
+        print(offset)
         offset += 1
 
     return jsonify({
