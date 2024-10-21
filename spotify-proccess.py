@@ -257,10 +257,8 @@ def check_liked_songs(track_uris, access_token):
 
 @app.route('/add_songs', methods=['GET'])
 def add_songs():
-    # Retrieve the access token and offset from the request
+    # Retrieve the access token from the request
     access_token = request.args.get('access_token')
-    offset = 0  # Start from offset 0 and process continuously
-
     if not access_token:
         return jsonify({'error': 'Access token not provided in request'}), 401
 
@@ -272,7 +270,6 @@ def add_songs():
     # Verify that the access token is valid
     token_info_url = 'https://api.spotify.com/v1/me'
     token_check = make_request_with_rate_limit(token_info_url, headers)
-
     if token_check.status_code != 200:
         return jsonify({
             'error': 'Invalid access token or permissions',
@@ -288,13 +285,16 @@ def add_songs():
     if not favorited_albums:
         return jsonify({'error': 'No favorited albums found'}), 400
 
-    all_track_uris = []  # Store track URIs to add to liked songs
-    next_offset = 0  # Starting offset
+    # Initialize offset for processing albums
+    next_offset = 0
+    total_albums = len(favorited_albums)
 
-    # Process albums until there are no more left
-    while next_offset < len(favorited_albums):
+    # Process albums in batches until all albums are processed
+    while next_offset < total_albums:
         # Get a batch of albums to process based on the current offset and batch size
         batch_albums = favorited_albums[next_offset:next_offset + batch_size]
+        
+        all_track_uris = []  # Reset track URIs for each batch
         
         # Fetch tracks from each album in the current batch
         for album in batch_albums:
@@ -303,7 +303,8 @@ def add_songs():
             all_track_uris.extend(album_tracks)
 
         if not all_track_uris:
-            return jsonify({'error': f'No tracks found in albums starting at offset {next_offset}'}), 400
+            next_offset += batch_size  # Move to the next album
+            continue  # No tracks in this batch, skip to the next
 
         # Check which tracks are already liked
         liked_status = check_liked_songs(all_track_uris, access_token)
@@ -332,8 +333,6 @@ def add_songs():
         'message': 'All albums processed and tracks added successfully.',
         'total_tracks_added': total_tracks
     }), 200
-
-
 
 
 
