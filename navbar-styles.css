@@ -49,10 +49,28 @@ nav {
     text-decoration: none;
     padding: 10px;
     white-space: nowrap;
+    position: relative; /* Required for the ::after pseudo-element */
+    text-decoration: none; /* Remove default underline */
+}
+
+nav .nav-links a::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -2px;
+    left: 50%;
+    background-color: white;
+    transition: width 0.3s ease, left 0.3s ease;
+}
+
+nav .nav-links a:hover::after {
+    width: 100%;
+    left: 0;
 }
 
 .nav-links a:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: transparent;
 }
 
 /* Hamburger menu styles */
