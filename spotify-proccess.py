@@ -305,9 +305,15 @@ def add_songs():
     processed_albums = set()  # Keep track of processed albums
     total_tracks = 0
 
+    # Continue processing albums as long as offset is valid
     while offset < len(favorited_albums):
-        # Get the current album to process
         album = favorited_albums[offset]
+        
+        # Some API calls might return albums in different structures
+        if 'album' not in album or 'id' not in album['album']:
+            offset += 1
+            continue  # Skip this entry if the album data is malformed
+
         album_id = album['album']['id']
 
         # Check if the album has already been processed
@@ -320,11 +326,17 @@ def add_songs():
 
         # Fetch all tracks from the album
         album_tracks = fetch_all_tracks_from_album(album_id, access_token)
-        track_uris = [track['uri'] for track in album_tracks]
+
+        if not isinstance(album_tracks, list):
+            offset += 1
+            continue  # Skip if tracks could not be fetched correctly
+
+        # Extract URIs of tracks that are not already liked
+        track_uris = [track['uri'] for track in album_tracks if 'uri' in track]
 
         if not track_uris:
             offset += 1
-            continue  # Skip if no tracks found in the album
+            continue  # Skip if no valid track URIs were found
 
         # Check liked status of the tracks
         liked_status = check_liked_songs(track_uris, access_token)
@@ -332,12 +344,15 @@ def add_songs():
 
         if tracks_to_add:
             add_songs_url = 'https://api.spotify.com/v1/me/tracks'
-            
+
             # Add songs in batches of 50 (Spotify's batch limit)
             for i in range(0, len(tracks_to_add), 50):
                 batch = tracks_to_add[i:i + 50]
-                response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': [uri.split(':')[-1] for uri in batch]})
-                
+                batch_ids = [uri.split(':')[-1] for uri in batch]
+
+                # Make the request to add the tracks
+                response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': batch_ids})
+
                 if response.status_code != 200:
                     print(f"Failed to add batch {i // 50 + 1}: {response.json()}")
                 else:
@@ -351,8 +366,6 @@ def add_songs():
         'message': 'All albums processed and tracks added successfully.',
         'total_tracks_added': total_tracks
     }), 200
-
-
 
 
 # Run the app when executing the script
