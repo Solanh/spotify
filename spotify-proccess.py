@@ -227,27 +227,27 @@ def check_liked_songs(track_uris, access_token):
     }
 
     track_ids = [uri.split(':')[-1] for uri in track_uris]  # Extract track IDs
-    print(f"Checking liked status for tracks with IDs: {track_ids}")
+    print(f"Checking liked status for track IDs: {track_ids}")  # Debugging log
 
     liked_tracks_url = 'https://api.spotify.com/v1/me/tracks/contains'
 
     liked_status = []
     for i in range(0, len(track_ids), 50):  # Process in batches of 50
         batch = track_ids[i:i + 50]
+        print(f"Sending request for batch {i // 50 + 1}: {batch}")  # Debugging log
         response = make_request_with_rate_limit(liked_tracks_url, headers, params={'ids': ','.join(batch)})
         
+        # Check if the response is valid
         if response.status_code != 200:
-            print(f"Failed to check liked songs in batch {i // 50 + 1}: {response.json()}")
-            return []
+            print(f"Failed to check liked songs in batch {i // 50 + 1}: {response.json()}")  # Debugging log
+            return []  # Exit if something goes wrong
 
-        # Debugging: Log the response from Spotify
-        print(f"Spotify liked status response for batch {i // 50 + 1}: {response.json()}")
+        print(f"Response for batch {i // 50 + 1}: {response.json()}")  # Debugging log
 
-        liked_status.extend(response.json())  # Extend liked status with results
+        liked_status.extend(response.json())  # Add the liked statuses to the list
 
-    print(f"Final liked status: {liked_status}")
+    print(f"Final liked status: {liked_status}")  # Debugging log
     return liked_status
-
 
 # Route to handle adding songs to user's liked songs
 @app.route('/add_songs', methods=['GET'])
