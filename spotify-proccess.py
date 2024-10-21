@@ -302,6 +302,7 @@ def add_songs():
 
     # Check which tracks are already liked
     liked_status = check_liked_songs(all_track_uris, access_token)
+    print(liked_status)
 
     # Filter out tracks that are already liked
     tracks_to_add = [uri for uri, liked in zip(all_track_uris, liked_status) if not liked]
