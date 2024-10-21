@@ -257,8 +257,9 @@ def check_liked_songs(track_uris, access_token):
 
 @app.route('/add_songs', methods=['GET'])
 def add_songs():
-    # Retrieve the access token from the request
     access_token = request.args.get('access_token')
+    offset = 0  # Start from offset 0 and process continuously
+
     if not access_token:
         return jsonify({'error': 'Access token not provided in request'}), 401
 
@@ -267,9 +268,9 @@ def add_songs():
         'Content-Type': 'application/json'
     }
 
-    # Verify that the access token is valid
     token_info_url = 'https://api.spotify.com/v1/me'
     token_check = make_request_with_rate_limit(token_info_url, headers)
+
     if token_check.status_code != 200:
         return jsonify({
             'error': 'Invalid access token or permissions',
@@ -277,62 +278,56 @@ def add_songs():
             'details': token_check.json()
         }), 401
 
-    # Fetch all favorited albums
     favorited_albums = fetch_all_favorited_albums(access_token)
-    batch_size = 1  # Process albums one at a time
-    total_tracks = 0  # Track total number of tracks added
-
     if not favorited_albums:
         return jsonify({'error': 'No favorited albums found'}), 400
 
-    # Initialize offset for processing albums
-    next_offset = 0
-    total_albums = len(favorited_albums)
+    processed_albums = set()  # Store albums that have already been processed
+    batch_size = 1
+    total_tracks = 0
+    all_track_uris = []
+    
+    while offset < len(favorited_albums):
+        # Get a batch of albums to process based on current offset
+        batch_albums = favorited_albums[offset:offset + batch_size]
 
-    # Process albums in batches until all albums are processed
-    while next_offset < total_albums:
-        # Get a batch of albums to process based on the current offset and batch size
-        batch_albums = favorited_albums[next_offset:next_offset + batch_size]
-        
-        all_track_uris = []  # Reset track URIs for each batch
-        
-        # Fetch tracks from each album in the current batch
         for album in batch_albums:
             album_id = album['album']['id']
+            
+            # Check if the album has already been processed
+            if album_id in processed_albums:
+                continue  # Skip already processed albums
+            
+            processed_albums.add(album_id)  # Mark this album as processed
             album_tracks = fetch_all_tracks_from_album(album_id, access_token)
             all_track_uris.extend(album_tracks)
 
         if not all_track_uris:
-            next_offset += batch_size  # Move to the next album
-            continue  # No tracks in this batch, skip to the next
+            return jsonify({'error': f'No tracks found in albums starting at offset {offset}'}), 400
 
-        # Check which tracks are already liked
         liked_status = check_liked_songs(all_track_uris, access_token)
-
-        # Filter out tracks that are already liked
         tracks_to_add = [uri for uri, liked in zip(all_track_uris, liked_status) if not liked]
 
         if tracks_to_add:
-            # Add songs to liked songs in batches of 50
             add_songs_url = 'https://api.spotify.com/v1/me/tracks'
             for i in range(0, len(tracks_to_add), 50):
                 batch = tracks_to_add[i:i + 50]
                 response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': [uri.split(':')[-1] for uri in batch]})
-
+                
                 if response.status_code != 200:
                     print(f"Failed to add songs in batch {i // 50 + 1}: {response.json()}")
                 else:
-                    total_tracks += len(batch)  # Update total track count
+                    total_tracks += len(batch)
                     print(f"Successfully added {len(batch)} tracks!")
 
-        # Move to the next batch by incrementing the offset
-        next_offset += batch_size
+        # Increment the offset to process the next batch
+        offset += batch_size
 
-    # Return final result once all albums are processed
     return jsonify({
         'message': 'All albums processed and tracks added successfully.',
         'total_tracks_added': total_tracks
     }), 200
+
 
 
 
