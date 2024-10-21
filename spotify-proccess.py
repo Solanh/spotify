@@ -145,7 +145,8 @@ def fetch_all_tracks_from_album(album_id, access_token):
             response_json = response.json()
 
             # Log the response for debugging
-            print(f"Response JSON for album {album_id}: {response_json}")
+            print(f"Fetched {len(response_json.get('items', []))} tracks from album {album_id}")
+
 
             # Stop fetching if no more tracks are found or response is not as expected
             if 'items' not in response_json:
@@ -264,7 +265,8 @@ def check_liked_songs(track_uris, access_token):
             print(f"Failed to check liked songs in batch {i // batch_size + 1}: {response.json()}")
             return []  # Exit if something goes wrong
 
-        print(f"Response for batch {i // batch_size + 1}: {response.json()}")
+        print(f"Batch {i // batch_size + 1} processed: {response.status_code}")
+
 
         liked_status.extend(response.json())  # Add the liked statuses to the list
 
@@ -348,18 +350,18 @@ def add_songs():
             add_songs_url = 'https://api.spotify.com/v1/me/tracks'
 
             # Add songs in batches of 50 (Spotify's batch limit)
-            for i in range(0, len(tracks_to_add), 50):
-                batch = tracks_to_add[i:i + 50]
+            for i in range(0, len(tracks_to_add), 15):
+                batch = tracks_to_add[i:i + 15]
                 batch_ids = [uri.split(':')[-1] for uri in batch]
 
                 # Make the request to add the tracks
                 response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': batch_ids})
 
                 if response.status_code != 200:
-                    print(f"Failed to add batch {i // 50 + 1}: {response.status_code}")
+                    print(f"Failed to add batch {i // 15 + 1}: {response.status_code}")
                 else:
                     total_tracks += len(batch)
-                    print(f"Added {len(batch)} tracks to 'Liked Songs'. Batch {i // 50 + 1}.")
+                    print(f"Added {len(batch)} tracks to 'Liked Songs'. Batch {i // 15 + 1}.")
 
         # Move to the next album
         print(offset)
