@@ -285,7 +285,7 @@ def add_songs():
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
     }
-
+    move_old_liked_songs(access_token)  # Move old liked songs to a new playlist
     # Check if access token is valid by hitting the /me endpoint
     token_info_url = 'https://api.spotify.com/v1/me'
     token_check = make_request_with_rate_limit(token_info_url, headers)
@@ -377,6 +377,7 @@ def add_songs():
         'message': 'All albums processed and tracks added successfully.',
         'total_tracks_added': total_tracks
     }), 200
+
 
 
 # Run the app when executing the script
