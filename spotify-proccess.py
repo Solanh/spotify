@@ -54,6 +54,7 @@ def callback():
         'client_id': SPOTIFY_CLIENT_ID,
         'client_secret': SPOTIFY_CLIENT_SECRET
     }
+    print(f"Access token retrieved: {session.get('access_token')}")
 
     # Exchange the authorization code for an access token
     token_response = requests.post(TOKEN_URL, data=token_data).json()
