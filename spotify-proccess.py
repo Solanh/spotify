@@ -220,6 +220,7 @@ def move_old_liked_songs(access_token):
 
 # Route to handle adding songs to user's liked songs
 # Function to check if tracks are already liked by the user
+# Function to check if tracks are already liked by the user
 def check_liked_songs(track_uris, access_token):
     headers = {
         'Authorization': f'Bearer {access_token}',
@@ -227,27 +228,30 @@ def check_liked_songs(track_uris, access_token):
     }
 
     track_ids = [uri.split(':')[-1] for uri in track_uris]  # Extract track IDs
-    print(f"Checking liked status for track IDs: {track_ids}")  # Debugging log
+    print(f"Checking liked status for track IDs: {track_ids}")
 
     liked_tracks_url = 'https://api.spotify.com/v1/me/tracks/contains'
 
     liked_status = []
-    for i in range(0, len(track_ids), 50):  # Process in batches of 50
-        batch = track_ids[i:i + 50]
-        print(f"Sending request for batch {i // 50 + 1}: {batch}")  # Debugging log
+    total_tracks = len(track_ids)  # Total number of tracks to check
+    batch_size = 50  # Spotify API limit for 'contains' endpoint
+    for i in range(0, total_tracks, batch_size):  # Process in batches of 50
+        batch = track_ids[i:i + batch_size]  # Current batch of track IDs
         response = make_request_with_rate_limit(liked_tracks_url, headers, params={'ids': ','.join(batch)})
         
         # Check if the response is valid
         if response.status_code != 200:
-            print(f"Failed to check liked songs in batch {i // 50 + 1}: {response.json()}")  # Debugging log
+            print(f"Failed to check liked songs in batch {i // batch_size + 1}: {response.json()}")
             return []  # Exit if something goes wrong
 
-        print(f"Response for batch {i // 50 + 1}: {response.json()}")  # Debugging log
+        print(f"Response for batch {i // batch_size + 1}: {response.json()}")
 
         liked_status.extend(response.json())  # Add the liked statuses to the list
 
-    print(f"Final liked status: {liked_status}")  # Debugging log
+    print(f"Final liked status: {liked_status}")
     return liked_status
+
+
 
 # Route to handle adding songs to user's liked songs
 @app.route('/add_songs', methods=['GET'])
