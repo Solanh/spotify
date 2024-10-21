@@ -58,7 +58,7 @@
         // Function to process the next batch of songs from the backend
         function processNextBatch(accessToken, offset) {
             const backendUrl = 'https://nameless-ocean-47665-871e4574a92b.herokuapp.com/add_songs';
-
+        
             // Make an API request to process the next batch of songs
             fetch(`${backendUrl}?access_token=${accessToken}&offset=${offset}`)
                 .then(response => response.json())
@@ -68,12 +68,13 @@
                         document.getElementById('spinner').style.display = 'none'; // Hide the spinner on error
                     } else {
                         // Display the current status of the process
-                        const currentStatus = `Processing batch starting at offset ${offset}... Added ${data.total_tracks_added} tracks so far.`;
-                        document.getElementById('status').innerHTML += `<p>${currentStatus}</p>`;
-
+                        const message = `${data.message} Processed ${data.total_tracks_added} tracks so far.`;
+                        document.getElementById('message').innerText = message;
+        
                         // Check if there's more work to do and if so, continue processing
                         if (data.next_offset !== undefined && data.next_offset < data.total_albums) {
                             // Update the UI to indicate we're moving to the next batch
+                            document.getElementById('message').innerText = `Processing batch starting at offset ${data.next_offset}...`;
                             processNextBatch(accessToken, data.next_offset); // Recursive call to process the next batch
                         } else {
                             // All batches have been processed
@@ -83,11 +84,12 @@
                     }
                 })
                 .catch(error => {
-                    document.getElementById('message').innerText = `Error processing batch: ${error}`;
+                    document.getElementById('message').innerText = `Error processing batch: ${error.message}`;
                     document.getElementById('spinner').style.display = 'none'; // Hide the spinner on error
                     console.error('Error:', error);
                 });
         }
+        
 
     </script>
 </body>
