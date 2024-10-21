@@ -21,44 +21,44 @@
                     document.getElementById('navbar-placeholder').innerHTML = data;
                 });
         }
-    
+
         // Call the function to load the navbar
         loadNavbar();
-    
+
         // Function to get query parameters from the URL
         function getQueryParams() {
             const params = {};
             const queryString = window.location.search.substring(1);
             const queryArray = queryString.split('&');
-    
+
             queryArray.forEach(function (param) {
                 const [key, value] = param.split('=');
                 params[key] = decodeURIComponent(value);
             });
-    
+
             return params;
         }
-    
+
         // Get the access token from the URL
         const params = getQueryParams();
         const accessToken = params['access_token'];
-    
+
         // Display a message or use the token
         if (accessToken) {
             document.getElementById('message').innerText = "Access token found, starting to add songs...";
             document.getElementById('spinner').style.display = 'block'; // Show the spinner
-    
+
             // Start the task to add songs and get the task ID
             startSongAddingTask(accessToken);
         } else {
             document.getElementById('message').innerText = "No access token found.";
             document.getElementById('spinner').style.display = 'none'; // Hide the spinner if no token is present
         }
-    
+
         // Function to start the song adding task
         function startSongAddingTask(accessToken) {
             const backendUrl = 'https://nameless-ocean-47665-871e4574a92b.herokuapp.com/add_songs';
-        
+
             // Start the song adding process on the backend
             fetch(`${backendUrl}?access_token=${accessToken}`)
                 .then(response => response.json())
@@ -77,11 +77,11 @@
                     console.error('Error:', error);
                 });
         }
-    
+
         // Function to poll the backend for task status
         function pollForStatus() {
             const statusUrl = 'https://nameless-ocean-47665-871e4574a92b.herokuapp.com/task_status';
-            
+
             // Poll the backend every 5 seconds to get the current status
             const pollInterval = setInterval(() => {
                 fetch(statusUrl)
@@ -95,7 +95,7 @@
                             // Display the current status of the process
                             const statusElement = document.getElementById('status');
                             statusElement.innerHTML = `<p>Processed ${data.processed_albums} out of ${data.total_albums} albums.</p>`;
-    
+
                             // If the task is complete, stop polling
                             if (data.status === 'completed') {
                                 document.getElementById('spinner').style.display = 'none'; // Hide the spinner
