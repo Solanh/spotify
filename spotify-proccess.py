@@ -29,46 +29,10 @@ AUTH_URL = 'https://accounts.spotify.com/authorize'
 TOKEN_URL = 'https://accounts.spotify.com/api/token'
 
 # Route to initiate the Spotify login flow
-@app.route('/login')
-def login():
-    # Define the required scopes (permissions) for the Spotify API
-    scope = 'user-library-modify user-library-read playlist-modify-public playlist-modify-private'
 
-    # Build the authorization URL to redirect the user to Spotify's login page
-    auth_url = f"{AUTH_URL}?client_id={SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&scope={scope}"
-
-    # Redirect the user to Spotify login
-    return redirect(auth_url)
 
 # Route to handle Spotify's callback after the user logs in
-@app.route('/callback')
-def callback():
-    # Get the authorization code from Spotify's callback
-    code = request.args.get('code')
 
-    # Prepare data for requesting an access token using the authorization code
-    token_data = {
-        'grant_type': 'authorization_code',
-        'code': code,
-        'redirect_uri': REDIRECT_URI,
-        'client_id': SPOTIFY_CLIENT_ID,
-        'client_secret': SPOTIFY_CLIENT_SECRET
-    }
-    print(f"Access token retrieved: {session.get('access_token')}")
-
-    # Exchange the authorization code for an access token
-    token_response = requests.post(TOKEN_URL, data=token_data).json()
-
-    # Check if an access token was successfully retrieved
-    if 'access_token' not in token_response:
-        return jsonify({'error': 'Failed to get access token', 'details': token_response}), 400
-
-    # Store the access token in the session for later use
-    access_token = token_response['access_token']
-    session['access_token'] = access_token
-
-    # Redirect back to the frontend with the access token as a query parameter
-    return redirect(f'https://solanh.github.io/spotify/success.html?access_token={access_token}')
 
 # Function to handle rate limits from Spotify's API
 def handle_rate_limit(response):
@@ -274,104 +238,99 @@ def check_liked_songs(track_uris, access_token):
     return liked_status
 
 
+@app.route('/login')
+def login():
+    # Define the required scopes (permissions) for the Spotify API
+    scope = 'user-library-modify user-library-read playlist-modify-public playlist-modify-private'
+
+    # Build the authorization URL to redirect the user to Spotify's login page
+    auth_url = f"{AUTH_URL}?client_id={SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&scope={scope}"
+
+    # Redirect the user to Spotify login
+    return redirect(auth_url)
+
+# Route to handle Spotify's callback after the user logs in
+@app.route('/callback')
+def callback():
+    # Get the authorization code from Spotify's callback
+    code = request.args.get('code')
+
+    # Prepare data for requesting an access token using the authorization code
+    token_data = {
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': REDIRECT_URI,
+        'client_id': SPOTIFY_CLIENT_ID,
+        'client_secret': SPOTIFY_CLIENT_SECRET
+    }
+
+    # Exchange the authorization code for an access token
+    token_response = requests.post(TOKEN_URL, data=token_data).json()
+
+    # Check if an access token was successfully retrieved
+    if 'access_token' not in token_response:
+        return jsonify({'error': 'Failed to get access token', 'details': token_response}), 400
+
+    # Store the access token in the session for later use
+    access_token = token_response['access_token']
+    session['access_token'] = access_token
+
+    # Redirect back to the frontend with the access token as a query parameter
+    return redirect(f'https://solanh.github.io/spotify/success.html?access_token={access_token}')
+
+# Route to handle adding songs to user's liked songs
 @app.route('/add_songs', methods=['GET'])
 def add_songs():
     access_token = request.args.get('access_token')
-    offset = 0  # Start from offset 0 and process continuously
 
     if not access_token:
         return jsonify({'error': 'Access token not provided in request'}), 401
+
+    session['processed_albums'] = 0
+    session['total_albums'] = 0
+    session['total_tracks_added'] = 0
 
     headers = {
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
     }
-    
-    move_old_liked_songs(access_token)  # Move old liked songs to a new playlist
-    
-    # Check if access token is valid by hitting the /me endpoint
-    token_info_url = 'https://api.spotify.com/v1/me'
-    token_check = make_request_with_rate_limit(token_info_url, headers)
-
-    if token_check.status_code != 200:
-        return jsonify({
-            'error': 'Invalid access token or permissions',
-            'status_code': token_check.status_code,
-            'details': token_check.json()
-        }), 401
 
     # Fetch all favorited albums
     favorited_albums = fetch_all_favorited_albums(access_token)
     if not favorited_albums:
         return jsonify({'error': 'No favorited albums found'}), 400
 
-    processed_albums = set()  # Keep track of processed albums
-    total_tracks = 0
-    
-    
-    
-    while offset < len(favorited_albums):
-        album = favorited_albums[offset]
-        
-        album_id = album['album']['id']
-        
-        # Some API calls might return albums in different structures
-        if 'album' not in album or 'id' not in album['album']:
-            offset += 1
-            continue
-        
-        if album_id in processed_albums:
-            offset += 1
-            continue
+    session['total_albums'] = len(favorited_albums)
 
-        # Mark album as processed
-        processed_albums.add(album_id)
+    for album in favorited_albums:
+        album_id = album['album']['id']
 
         # Fetch all tracks from the album
         album_tracks = fetch_all_tracks_from_album(album_id, access_token)
-
-        if not isinstance(album_tracks, list):
-            offset += 1
-            continue  # Skip if tracks could not be fetched correctly
-
-        # Extract URIs of tracks that are not already liked
         track_uris = [track['uri'] for track in album_tracks if 'uri' in track]
-        track_names = [track['name'] for track in album_tracks if 'name' in track]
 
-        if not track_uris:
-            offset += 1
-            continue  # Skip if no valid track URIs were found
-        
-        liked_status = check_liked_songs(track_uris, access_token)
-        
-        tracks_to_add = [uri for uri, liked in zip(track_uris, liked_status) if not liked]
+        # Add tracks to user's liked songs
+        if track_uris:
+            add_tracks_to_liked_songs(track_uris, access_token)
 
-        if tracks_to_add:
-            add_songs_url = 'https://api.spotify.com/v1/me/tracks'
-
-            # Add songs in batches of 50 (Spotify's batch limit)
-            for i in range(0, len(tracks_to_add), 15):
-                batch = tracks_to_add[i:i + 15]
-                batch_ids = [uri.split(':')[-1] for uri in batch]
-
-                # Make the request to add the tracks
-                response = make_request_with_rate_limit(add_songs_url, headers, method="PUT", json_data={'ids': batch_ids})
-
-                if response.status_code != 200:
-                    print(f"Failed to add batch {i // 15 + 1}: {response.status_code}")
-                else:
-                    total_tracks += len(batch)
-                    print(f"Added {len(batch)} tracks to 'Liked Songs'. Batch {i // 15 + 1}.")
-
-        # Move to the next album
-        print(offset)
-        offset += 1
+        # Update session with progress
+        session['processed_albums'] += 1
 
     return jsonify({
-        'message': 'All albums processed and tracks added successfully.',
-        'total_tracks_added': total_tracks
+        'message': 'Song adding task started.',
+        'total_albums': session['total_albums'],
+        'processed_albums': session['processed_albums']
     }), 200
 
+# Route to check the status of the song-adding process
+@app.route('/task_status', methods=['GET'])
+def task_status():
+    return jsonify({
+        'total_albums': session.get('total_albums', 0),
+        'processed_albums': session.get('processed_albums', 0),
+        'total_tracks_added': session.get('total_tracks_added', 0),
+        'status': 'completed' if session.get('processed_albums', 0) == session.get('total_albums', 0) else 'in_progress'
+    }), 200
 # Run the app when executing the script
 if __name__ == '__main__':
     app.run(debug=True)
