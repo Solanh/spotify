@@ -237,7 +237,8 @@ def check_liked_songs(track_uris, access_token):
         if response.status_code != 200:
             print(f"Failed to check liked songs in batch {i // 50 + 1}: {response.json()}")
             return []
-
+        print(f"Checking liked status for batch {i // 50 + 1}: {batch}")
+        print(f"Spotify response for liked status: {response.json()}")
         liked_status.extend(response.json())  # Extend liked status with results
 
     return liked_status
