@@ -272,7 +272,6 @@ def check_liked_songs(track_uris, access_token):
     return liked_status
 
 
-
 @app.route('/add_songs', methods=['GET'])
 def add_songs():
     access_token = request.args.get('access_token')
@@ -306,23 +305,19 @@ def add_songs():
 
     processed_albums = set()  # Keep track of processed albums
     total_tracks = 0
-
-    # Continue processing albums as long as offset is valid
+    
+    
+    
     while offset < len(favorited_albums):
         album = favorited_albums[offset]
+        
+        album_id = album['album']['id']
         
         # Some API calls might return albums in different structures
         if 'album' not in album or 'id' not in album['album']:
             offset += 1
-            continue  # Skip this entry if the album data is malformed
-
-        album_id = album['album']['id']
-        album_name = album['album']['name']
-
-        # Log the album being processed
-        print(f"Processing album: {album_name} (ID: {album_id})")
-
-        # Check if the album has already been processed
+            continue
+        
         if album_id in processed_albums:
             offset += 1
             continue
@@ -344,16 +339,9 @@ def add_songs():
         if not track_uris:
             offset += 1
             continue  # Skip if no valid track URIs were found
-
-        # Check liked status of the tracks
+        
         liked_status = check_liked_songs(track_uris, access_token)
         
-        # Log only tracks that are not yet liked
-        for name, uri, liked in zip(track_names, track_uris, liked_status):
-            if not liked:
-                print(f"Track: {name} (URI: {uri}) will be added to 'Liked Songs'.")
-
-        # Filter out tracks that are not liked yet
         tracks_to_add = [uri for uri, liked in zip(track_uris, liked_status) if not liked]
 
         if tracks_to_add:
@@ -380,8 +368,6 @@ def add_songs():
         'message': 'All albums processed and tracks added successfully.',
         'total_tracks_added': total_tracks
     }), 200
-
-
 
 # Run the app when executing the script
 if __name__ == '__main__':
