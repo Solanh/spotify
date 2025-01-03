@@ -4,13 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spotify Script Runner</title>
-    <link rel="stylesheet" href="index-styles.css"> <!-- Ensure the correct path to your CSS -->
+    <link rel="stylesheet" href="css/index-styles.css"> <!-- Ensure the correct path to your CSS -->
 </head>
 <body>
     <div id="navbar-placeholder"></div> <!-- Navbar placeholder -->
 
     <button type="button" id="run-button">Run</button>
     <div id="loading-spinner" class="spinner" style="display: none;">Loading...</div> <!-- Loading spinner -->
+
+    <section class="parameters">
+        <label>
+            <input type="checkbox" id="myCheckbox">
+            Create new playlist
+        </label>
+        <label>
+            <input type="checkbox" id="myCheckbox">
+            Replace liked songs
+        </label>
+    </section>
+
 
     <script>
         function loadNavbar() {

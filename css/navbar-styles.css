@@ -1,7 +1,7 @@
 /* Navigation bar styles */
 nav {
     display: flex;
-    justify-content: space-between; /* Keeps elements spaced out */
+    justify-content: space-between;
     align-items: center;
     padding: 10px;
     background-color: #333;
@@ -11,25 +11,39 @@ nav {
     top: 0;
     left: 0;
     z-index: 1000;
-    font-family: 'Times New Roman', Times, serif; /* Set font to Times New Roman */
+    font-family: 'Times New Roman', Times, serif;
 }
 
 .nav-container {
-    flex: 1; /* Takes up remaining space between left and right */
     display: flex;
-    justify-content: center; /* Ensures links are centered in this space */
-    gap: 15px;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
 }
 
-/* Centering nav links */
+/* Personal logo on the left */
+.personal-logo {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 35px;
+    height: 35px;
+}
+
+.personal-logo img {
+    width: 100%;
+    height: auto;
+}
+
+/* Centering navigation links */
 .nav-links {
     display: flex;
     gap: 15px;
     flex-wrap: nowrap;
-    margin: 0 auto; /* Use margin auto to center within the flex container */
+    margin: 0 auto;
 }
 
-/* Social links should be on the right */
+/* Social links on the right */
 .social-links {
     display: flex;
     align-items: center;
@@ -49,11 +63,14 @@ nav {
     text-decoration: none;
     padding: 10px;
     white-space: nowrap;
-    position: relative; /* Required for the ::after pseudo-element */
-    text-decoration: none; /* Remove default underline */
+    position: relative;
+    background-color: transparent;
+    border: none;
+    outline: none;
 }
 
-nav .nav-links a::after {
+/* Underline on hover */
+.nav-links a::after {
     content: '';
     position: absolute;
     width: 0;
@@ -64,39 +81,48 @@ nav .nav-links a::after {
     transition: width 0.3s ease, left 0.3s ease;
 }
 
-nav .nav-links a:hover::after {
+.nav-links a:hover::after {
     width: 100%;
     left: 0;
 }
 
 .nav-links a:hover {
     background-color: transparent;
+    color: white;
 }
 
-/* Hamburger menu styles */
+/* Style the active link with an underline */
+.nav-links a.active::after {
+    width: 100%;
+    left: 0;
+}
+
+/* Hamburger menu styles - hidden by default */
 .menu {
-    display: flex;
-    align-items: center;
-}
-
-.menu div {
-    width: 25px;
-    height: 3px;
-    background-color: white;
-    margin: 4px 0;
-    transition: 0.4s;
-}
-
-/* Dropdown content styles */
-.menu-content {
+    position: relative;
     display: none;
     flex-direction: column;
-    background-color: #333;
-    position: absolute;
+    cursor: pointer;
+    z-index: 1001;
+    height: 35px;
+    width: 35px;
+    margin-right: 15px;
+}
+
+
+
+/* Dropdown content styling - initially hidden */
+.menu-content {
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    background-color: rgb(5,5,5);
+    position: fixed;
     top: 50px;
     right: 10px;
     width: 200px;
     border: 1px solid #444;
+    z-index: 1001;
+    border-radius: 8px;
 }
 
 .menu-content a {
@@ -106,40 +132,31 @@ nav .nav-links a:hover::after {
     text-decoration: none;
 }
 
+.menu button{
+    
+    font-size: 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: white;
+    
+}
 .menu-content a:hover {
     background-color: #444;
 }
 
-/* Responsive styles */
+/* Show class for dropdown content */
+.menu-content.show {
+    display: flex; /* Display as flex when toggle is active */
+}
+
+/* Responsive styling for smaller screens */
 @media (max-width: 768px) {
     .nav-links {
-        display: none;
+        display: none; /* Hide regular navigation links */
     }
-
     .menu {
-        display: flex;
-    }
-
-    .menu-content {
-        display: none;
-        flex-direction: column;
-        background-color: #333;
-        position: absolute;
-        top: 50px;
-        right: 10px;
-        width: 200px;
-        border: 1px solid #444;
-    }
-
-    .menu-content a {
-        padding: 10px;
-        border-bottom: 1px solid #444;
-        color: white;
-        text-decoration: none;
-    }
-
-    .menu-content a:hover {
-        background-color: #444;
+        display: flex; /* Show hamburger menu on smaller screens */
     }
 }
 

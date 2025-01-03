@@ -4,62 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Navbar</title>
-    <link rel="stylesheet" href="navbar-styles.css"> <!-- Link to external CSS -->
+    <link rel="stylesheet" href="css/navbar-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="icon" href="Images/favicon.png" type="image/x-icon">
 </head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-PHK7HF67QY"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-PHK7HF67QY');
+</script>
 <body>
     <nav>
-        <div class="menu" onclick="toggleMenu()">
-            <div></div>
-            <div></div>
-            <div></div>
-        </div>
         <div class="nav-container">
-            <div class="nav-links" id="navLinks">
-                <a href="https://solanh.github.io">Home</a>
-                <a href="index.html">Spotify</a>
+            <div class="personal-logo">
                 
+                <a href="index.html" target="_blank">
+                    <img src="Images/better-logo.png" alt="Solanh Logo">
+                </a>
             </div>
+            <!-- Regular navigation links -->
+            <div class="nav-links" id="navLinks">
+                <a href="https://solanhomestead.com/">Home</a>
+                <a href="https://solanhomestead.com/xhiles-password.html">Xhiles</a>
+                <a href="https://solanhomestead.com/projects.html">Projects</a>
+                <a href="https://solanhomestead.com/resume.html">Resume</a>
+                <a href="https://solanhomestead.com/contact.html">Contact</a>
+            </div>
+            <!-- Social links -->
             <div class="social-links">
-                <a href="https://github.com/yourusername" target="_blank">
-                    <img src="Images\github-mark-white.png" alt="GitHub" class="github-social-logo">
+                <a href="https://github.com/Solanh" target="_blank">
+                    <img src="Images/github-mark-white.png" alt="GitHub" class="github-social-logo">
                 </a>
-                <a href="https://www.linkedin.com/in/yourusername" target="_blank">
-                    <img src="Images\LI-In-Bug.png" alt="LinkedIn" class="linkedin-social-logo">
+                <a href="https://www.linkedin.com/in/solan-homestead-46639727b/" target="_blank">
+                    <img src="Images/LI-In-Bug.png" alt="LinkedIn" class="linkedin-social-logo">
                 </a>
+            </div>
+            <!-- Hamburger menu icon for small screens -->
+            <div class="menu">
+                <button onclick="toggleMenu()" id="menuButton"><i class="fas fa-bars"></i></button>
             </div>
         </div>
     </nav>
 
+    <!-- Dropdown content for small screens -->
     <div class="menu-content" id="menuContent">
-        <!-- Overflowing items will be moved here -->
+        <a href="https://solanhomestead.com/index.html">Home</a>
+        <a href="https://solanhomestead.com/xhiles-password.html">Xhiles</a>
+        <a href="https://solanhomestead.com/projects.html">Projects</a>
+        <a href="https://solanhomestead.com/resume.html">Resume</a>
+        <a href="https://solanhomestead.com/contact.html">Contact</a>
     </div>
 
     <script>
-        function toggleMenu() {
-            const menuContent = document.getElementById('menuContent');
-            if (menuContent.style.display === 'flex') {
-                menuContent.style.display = 'none';
-            } else {
-                menuContent.style.display = 'flex';
-            }
-        }
-
-        function handleOverflow() {
-            const navLinks = document.getElementById('navLinks');
-            const menuContent = document.getElementById('menuContent');
-            const navContainerWidth = navLinks.parentElement.clientWidth;
-            let totalWidth = 0;
-
-            Array.from(navLinks.children).forEach(link => {
-                totalWidth += link.offsetWidth;
-                if (totalWidth > navContainerWidth) {
-                    menuContent.appendChild(link);
-                }
-            });
-        }
-
-        window.addEventListener('resize', handleOverflow);
-        window.addEventListener('load', handleOverflow);
+        
     </script>
 </body>
 </html>
