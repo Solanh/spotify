@@ -6,48 +6,109 @@ body {
     height: 100vh;
     margin: 0;
     padding: 0;
-    background-color: #333; /* Set background color to #333 */
-    color: white; /* Set text color to white for better contrast */
+    background-color: #333; /* Dark background color */
+    color: white; /* Text color for contrast */
     font-family: 'Times New Roman', Times, serif; /* Set font to Times New Roman */
 }
 
 button {
-    margin-top: 20px;
-    padding: 10px 20px; /* Add horizontal padding for better appearance */
+    margin: 20px 0; /* Combine top and bottom margins */
+    padding: 10px 20px; /* Padding for better appearance */
     font-size: 16px;
     cursor: pointer;
-    background-color: #4CAF50; /* Set button background color */
-    color: white; /* Set button text color */
+    background-color: #4CAF50; /* Button background color */
+    color: white; /* Button text color */
     border: none; /* Remove default border */
-    border-radius: 5px; /* Add border radius for rounded corners */
-    transition: background-color 0.3s ease; /* Add transition for hover effect */
+    border-radius: 5px; /* Rounded corners */
+    transition: background-color 0.3s ease; /* Smooth hover effect */
 }
 
 button:hover {
-    background-color: #45a049; /* Change background color on hover */
+    background-color: #45a049; /* Darker green on hover */
 }
 
 /* Styles for the loading spinner */
 .spinner {
     margin-top: 20px;
-    border: 8px solid #f3f3f3; /* Light grey */
-    border-top: 8px solid #4CAF50; /* Green */
+    border: 8px solid #f3f3f3; /* Light grey border */
+    border-top: 8px solid #4CAF50; /* Green top border */
     border-radius: 50%;
     width: 60px;
     height: 60px;
-    animation: spin 2s linear infinite;
-}
-
-.parameters{
-    display: flex;
-    flex-direction: column;
-}
-
-.parameters label{
-    padding-top: 50px;
+    animation: spin 2s linear infinite; /* Continuous spinning animation */
 }
 
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+.parameters {
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Space between rows */
+}
+
+.text-label {
+    font-size: 16px;
+    color: white;
+}
+
+/* Container for the switch */
+.container {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+}
+
+.container label{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Hide default HTML checkbox */
+.checkbox {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+    pointer-events: none;
+}
+
+/* The switch background */
+.switch {
+    width: 51px;
+    height: 31px;
+    background-color: #e9e9eb; /* Light gray background */
+    border-radius: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-out;
+    position: relative; /* Ensures the slider stays positioned correctly */
+    margin-right: 20px;
+}
+
+/* The slider handle */
+.slider {
+    width: 27px;
+    height: 27px;
+    position: absolute;
+    top: 50%;
+    left: 5%; /* Start near the left edge */
+    transform: translate(0, -50%);
+    border-radius: 50%;
+    background: #FFFFFF; /* White handle */
+    box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.15), 0px 3px 1px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease-out; /* Smooth movement */
+    cursor: pointer;
+}
+
+/* Switch background when checked */
+.checkbox:checked + .switch {
+    background-color: #34C759; /* Green background */
+}
+
+/* Slider position when checked */
+.checkbox:checked + .switch .slider {
+    left: calc(100% - 32px); /* Adjust for the slider width */
 }

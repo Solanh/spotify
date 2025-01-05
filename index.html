@@ -13,14 +13,21 @@
     <div id="loading-spinner" class="spinner" style="display: none;">Loading...</div> <!-- Loading spinner -->
 
     <section class="parameters">
-        <label>
-            <input type="checkbox" id="myCheckbox">
-            Create new playlist
-        </label>
-        <label>
-            <input type="checkbox" id="myCheckbox">
-            Replace liked songs
-        </label>
+        <div class="container">
+            <input type="checkbox" class="checkbox" id="createPlaylistSwitch">
+            <label class="switch" for="createPlaylistSwitch">
+                <span class="slider"></span>
+            </label>
+            <label for="createPlaylistSwitch">Create new playlist</label>
+        </div>
+    
+        <div class="container">
+            <input type="checkbox" class="checkbox" id="replaceLikedSongsSwitch">
+            <label class="switch" for="replaceLikedSongsSwitch">
+                <span class="slider"></span>
+            </label>
+            <label for="replaceLikedSongsSwitch">Replace liked songs</label>
+        </div>
     </section>
 
 
