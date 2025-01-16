@@ -96,52 +96,65 @@ def create_playlist():
     except Exception as e:
         return f"Error creating playlist: {str(e)}", 400
 
-@app.route('/get_album_tracks', methods=['GET'])
+@app.route('/get_album_songs', methods = ['GET'])
 def get_album_tracks():
     token_info = session.get('token_info', None)
     
     album_tracks = []
     
     if not token_info:
+        print("oops1")
         return redirect(url_for('index'))  # Redirect to login if no token
+        
 
     # Check and refresh token if needed
     if sp_oauth.is_token_expired(token_info):
         token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
         session['token_info'] = token_info
+        print("oops2")
 
     # Initialize Spotify client with valid token
     sp = spotipy.Spotify(auth=token_info['access_token'])
     user = sp.current_user()
     
     try:
-        
+        print("oops3")
         offset = 0
         limit = 10
 
         while True:
+            print("oops4")
+            print(offset)
             saved_albums = sp.current_user_saved_albums(limit=limit, offset=offset)
             if not saved_albums['items']:
                 print("No more albums found")
                 break  # Exit loop if no more albums
 
             for item in saved_albums['items']:
+                print("uh oh")
                 album = item['album']
-                tracks = sp.album_tracks(album['id'])  # Fetch tracks for each album
+                print(f"Fetching tracks for album: {album['name']} (ID: {album['id']})")
+
+                #print(album)
+                tracks = sp.album_tracks(album['id'])
+                print("hello")
+                print(f"Tracks response: {tracks}")
+
                 for track in tracks['items']:
+                    print("uh oh again")
                     album_tracks.append({'album': album['name'], 'track': track['name']})
                     
             offset += limit  # Move to the next page
                     
             print(f"Fetched {len(album_tracks)} tracks")
             
-        return len(album_tracks)
+        return album_tracks
         
     except Exception as e:
         return f"Error creating playlist: {str(e)}", 400
     
     
-@app.route('/check_liked_songs', methods=['GET'])   
+@app.route('/check_liked_songs', methods=['GET'])
 def check_liked_songs():
     token_info = session.get('token_info', None)
     
@@ -170,16 +183,15 @@ def check_liked_songs():
                 break  # Exit loop if no more albums
 
             for item in liked_songs['items']:
-                album = item['album']
-                tracks = sp.album_tracks(album['id'])  # Fetch tracks for each album
-                for track in tracks['items']:
-                    liked_songs_l.append({'album': album['name'], 'track': track['name']})
+                track = item['track']
+                
+                liked_songs_l.append({'album': track['album']['name'], 'track': track['name']})
                     
             offset += limit  # Move to the next page
                     
-            print(f"Fetched {len(liked_songs_l)} tracks")
+            print(f"Found {len(liked_songs_l)} tracks")
             
-        return len(liked_songs_l)
+        return liked_songs_l
         
         
     except Exception as e:
@@ -188,11 +200,38 @@ def check_liked_songs():
         
 @app.route('/main', methods=['GET'])
 def main():
-    print("Starting Flask app...")
-    app.run(debug=True)  # Flask starts running here
+    token_info = session.get('token_info', None)
+    if not token_info:
+        return redirect(url_for('index'))  # Redirect to login if no token
+
+    # Check and refresh token if needed
+    if sp_oauth.is_token_expired(token_info):
+        token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
+        session['token_info'] = token_info
+
+    # Initialize Spotify client with valid token
+    sp = spotipy.Spotify(auth=token_info['access_token'])
+
+    try:
+        # Call the functions and collect their results
+        album_tracks_count = get_album_tracks()
+        print(len(album_tracks_count))
+        liked_songs_count = check_liked_songs()
+        print(len(liked_songs_count))
+        
+
+        # Return a combined result
+        return (
+            f"Main actions executed successfully!<br>"
+            f"Album tracks processed: {album_tracks_count}<br>"
+            
+        )
+    except Exception as e:
+        return f"Error executing main actions: {str(e)}", 400
     
     
 
 
 if __name__ == '__main__':
-    main()
+    app.run()
+    

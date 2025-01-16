@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../Github Website/solanh.github.io"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "Spotify"
+	}
+}
