@@ -71,7 +71,7 @@ def profile():
 
 
 @app.route('/create_playlist', methods=['GET'])
-def create_playlist():
+def create_playlist(playlist_name):
     #Create a new playlist for the user."""
     token_info = session.get('token_info', None)
     if not token_info:
@@ -88,7 +88,7 @@ def create_playlist():
 
     # Create a playlist
     try:
-        playlist_name = "Album songs"
+        
         playlist = sp.user_playlist_create(
             user=user['id'], name=playlist_name, public=True
         )
@@ -96,63 +96,91 @@ def create_playlist():
     except Exception as e:
         return f"Error creating playlist: {str(e)}", 400
 
-@app.route('/get_album_songs', methods = ['GET'])
-def get_album_tracks():
+def get_valid_token():
+    
+    # Get token info from the session
     token_info = session.get('token_info', None)
-    
-    album_tracks = []
-    
-    if not token_info:
-        print("oops1")
-        return redirect(url_for('index'))  # Redirect to login if no token
-        
 
-    # Check and refresh token if needed
+    # If no token info is available, return None
+    if not token_info:
+        return None
+
+    # Refresh the token if it has expired
     if sp_oauth.is_token_expired(token_info):
         token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
         session['token_info'] = token_info
-        print("oops2")
 
+    return token_info['access_token']
+
+
+def get_album_ids():
+    
     # Initialize Spotify client with valid token
-    sp = spotipy.Spotify(auth=token_info['access_token'])
-    user = sp.current_user()
+    sp = spotipy.Spotify(auth=get_valid_token())
+    
+    album_ids = []
     
     try:
-        print("oops3")
         offset = 0
         limit = 10
-
+        
         while True:
-            print("oops4")
-            print(offset)
             saved_albums = sp.current_user_saved_albums(limit=limit, offset=offset)
             if not saved_albums['items']:
                 print("No more albums found")
                 break  # Exit loop if no more albums
 
             for item in saved_albums['items']:
-                print("uh oh")
-                album = item['album']
-                print(f"Fetching tracks for album: {album['name']} (ID: {album['id']})")
-
-                #print(album)
-                tracks = sp.album_tracks(album['id'])
-                print("hello")
-                print(f"Tracks response: {tracks}")
-
-                for track in tracks['items']:
-                    print("uh oh again")
-                    album_tracks.append({'album': album['name'], 'track': track['name']})
+                id = item['album']
+                
+                album_ids.append(id['id'])
+                
+                
+                
+                #album_songs.append({'album': track['album']['name'], 'track': track['name']})
                     
             offset += limit  # Move to the next page
                     
-            print(f"Fetched {len(album_tracks)} tracks")
+            print(f"Found {len(album_ids)} id's")
             
-        return album_tracks
+        return album_ids
+        
         
     except Exception as e:
-        return f"Error creating playlist: {str(e)}", 400
+        return [f"Error retriving songs: {str(e)}", 400]
     
+    
+@app.route('/get_album_songs', methods=['GET'])
+def get_album_songs():
+    
+
+    # Initialize Spotify client with valid token
+    sp = spotipy.Spotify(auth=get_valid_token())
+    
+    album_songs = []
+    
+    try:
+        offset = 0
+        limit = 30
+        
+        ids = get_album_ids()
+        print("hello")
+        while True:
+            for album_id in ids:
+                tracks = sp.album_tracks(album_id=album_id, limit=limit, offset=offset)
+                if not tracks['items']:
+                    break
+                for track in tracks['items']:
+                    album_songs.append(track)
+            offset += limit
+                            
+            print(f"Found {len(album_songs)} id's")
+            
+        return album_songs
+        
+        
+    except Exception as e:
+        return [f"Error retriving songs: {str(e)}", 400]
     
 @app.route('/check_liked_songs', methods=['GET'])
 def check_liked_songs():
@@ -197,7 +225,51 @@ def check_liked_songs():
     except Exception as e:
         return f"Error retriving songs: {str(e)}", 400
     
-        
+
+@app.route('/get_album_tracks', methods=['GET'])
+def get_album_tracks():
+    token_info = session.get('token_info', None)
+
+    album_tracks = []
+
+    if not token_info:
+        return redirect(url_for('index'))  # Redirect to login if no token
+
+    # Check and refresh token if needed
+    if sp_oauth.is_token_expired(token_info):
+        token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
+        session['token_info'] = token_info
+
+    # Initialize Spotify client with valid token
+    sp = spotipy.Spotify(auth=token_info['access_token'])
+    user = sp.current_user()
+
+    try:
+
+        offset = 0
+        limit = 10
+
+        while True:
+            saved_albums = sp.current_user_saved_albums(limit=limit, offset=offset)
+            if not saved_albums['items']:
+                print("No more albums found")
+                break  # Exit loop if no more albums
+
+            for item in saved_albums['items']:
+                album = item['album']
+                tracks = sp.album_tracks(album['id'])  # Fetch tracks for each album
+                for track in tracks['items']:
+                    album_tracks.append({'album': album['name'], 'track': track['name']})
+
+            offset += limit  # Move to the next page
+
+            print(f"Fetched {len(album_tracks)} tracks")
+
+        return len(album_tracks)
+
+    except Exception as e:
+        return f"Error creating playlist: {str(e)}", 400
+
 @app.route('/main', methods=['GET'])
 def main():
     token_info = session.get('token_info', None)
@@ -214,8 +286,7 @@ def main():
 
     try:
         # Call the functions and collect their results
-        album_tracks_count = get_album_tracks()
-        print(len(album_tracks_count))
+      
         liked_songs_count = check_liked_songs()
         print(len(liked_songs_count))
         
@@ -223,7 +294,7 @@ def main():
         # Return a combined result
         return (
             f"Main actions executed successfully!<br>"
-            f"Album tracks processed: {album_tracks_count}<br>"
+            
             
         )
     except Exception as e:
@@ -233,5 +304,5 @@ def main():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=False)
     
