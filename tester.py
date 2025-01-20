@@ -26,7 +26,8 @@ sp_oauth = SpotifyOAuth(
     client_id=SPOTIFY_CLIENT_ID,
     client_secret=SPOTIFY_CLIENT_SECRET,
     redirect_uri=REDIRECT_URI,
-    scope="user-library-read playlist-modify-public playlist-modify-private user-read-playback-state"
+    scope="user-library-read playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private user-read-playback-state"
+
 )
 
 
@@ -252,6 +253,12 @@ def clear_songs_from_playlist():
     except Exception as e:
         return f"Error clearing songs from playlist: {str(e)}", 400
     
+    
+@app.route('/testing', methods=['GET'])
+def tester_function():
+    
+    return "Working"
+
 @app.route('/check_playlist_songs', methods=['GET'])
 def check_playlist_songs():
     sp = spotipy.Spotify(auth=get_valid_token())
@@ -304,9 +311,12 @@ def add_songs_to_playlist(track_ids, playlist_id):
 def get_playlist_id():
     
     sp = spotipy.Spotify(auth=get_valid_token())
+    print("1")
     
     try:
+        print("3")
         playlists = sp.current_user_playlists()
+        print("2")
         for playlist in playlists['items']:
             if playlist['name'] == 'tester':
                 return playlist['id']
@@ -347,5 +357,5 @@ def main():
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
     
