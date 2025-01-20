@@ -3,6 +3,7 @@ from flask import Flask, redirect, request, session, url_for
 from dotenv import load_dotenv
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+import time as t
 
 # Load environment variables
 load_dotenv()
@@ -114,25 +115,24 @@ def get_album_ids():
     album_ids = []
     
     try:
-        offset = 0
-        limit = 10
         
-        while True:
-            saved_albums = sp.current_user_saved_albums(limit=limit, offset=offset)
-            if not saved_albums['items']:
-                print("No more albums found")
-                break  # Exit loop if no more albums
-
+        num_saved_albums = sp.current_user_saved_albums(limit=1)['total']
+        
+        for i in range(0, num_saved_albums, 20):
+            saved_albums = sp.current_user_saved_albums(limit=20, offset=i)
             for item in saved_albums['items']:
-                id = item['album']
-                
-                album_ids.append(id['id'])
+                id = item['album']['id']
+                album_ids.append(id)
+        
+        
+
+        
                 
                 
                 
                 #album_songs.append({'album': track['album']['name'], 'track': track['name']})
                     
-            offset += limit  # Move to the next page
+           
                     
             print(f"Found {len(album_ids)} id's")
         print(album_ids)
@@ -225,13 +225,27 @@ def check_liked_songs():
 def clear_songs_from_playlist():
     sp = spotipy.Spotify(auth=get_valid_token())
     
+    
     try:
-        playlist_id = '41Zy0SgcV5GVQ60rB4X4Tl'
-        tracks = sp.playlist_tracks(playlist_id=playlist_id)
-        track_ids = [track['track']['id'] for track in tracks['items']]
+        playlist_id = '6wLXeAJtOgDGDkW3vNpsKF'
+        playlist_data = sp.playlist_tracks(playlist_id, limit=1)['total']
+        print(playlist_data)
         
-        for i in track_ids:
-            sp.playlist_remove_all_occurrences_of_items(playlist_id=playlist_id, items=i)
+        things = sp.current_user_saved_tracks(limit=1)['total']
+        print(things)
+        
+        for i in range(0, playlist_data, 100):
+            tracks = sp.playlist_tracks(playlist_id=playlist_id, limit=100, offset=i)
+            track_ids = [track['track']['id'] for track in tracks['items'] if track['track']]
+            t.sleep(.5)
+            
+            if not track_ids:
+                print("oops")
+                continue
+            
+            sp.playlist_remove_all_occurrences_of_items(playlist_id=playlist_id, items=track_ids)
+            t.sleep(.2)
+            print(f"Batch {i//100} complete")
             
             
         return "Songs removed from playlist"
@@ -244,11 +258,19 @@ def check_playlist_songs():
     
     playlist_songs = []
     
+    
     try:
-        playlist_songs = sp.playlist_tracks(playlist_id='41Zy0SgcV5GVQ60rB4X4Tl')
+        count = 0
+        print("zero")
+        playlist_songs_num = sp.playlist_tracks(playlist_id='6wLXeAJtOgDGDkW3vNpsKF', limit=1)['total']
+        print(playlist_songs_num)
+        print("one")
         for i in playlist_songs['items']:
-            
+            count += 1
+            print("hello")
             playlist_songs.append(i['track']['id'])
+            if count % 100 == 0:
+                print(f"Found {count} songs")
             
         return playlist_songs
     except Exception as e:
@@ -286,7 +308,7 @@ def get_playlist_id():
     try:
         playlists = sp.current_user_playlists()
         for playlist in playlists['items']:
-            if playlist['name'] == 'My New Flask Playlist':
+            if playlist['name'] == 'tester':
                 return playlist['id']
         return None
     except Exception as e:
