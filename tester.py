@@ -73,20 +73,22 @@ def profile():
 
 
 @app.route('/create_playlist', methods=['GET'])
-def create_playlist(playlist_name):
+def create_playlist():
     #Create a new playlist for the user."""
     
 
     # Initialize Spotify client with valid token
     sp = spotipy.Spotify(auth=get_valid_token())    
     user = sp.current_user()
+    t.sleep(1)
 
     # Create a playlist
     try:
-        
+        print("hello")
         playlist = sp.user_playlist_create(
-            user=user['id'], name=playlist_name, public=False
+            user=user['id'], name="thing that is annoying", public=False
         )
+        print("hello2")
         return playlist['id']
     except Exception as e:
         return f"Error creating playlist: {str(e)}", 400
@@ -228,7 +230,7 @@ def clear_songs_from_playlist():
     
     
     try:
-        playlist_id = '6wLXeAJtOgDGDkW3vNpsKF'
+        playlist_id = '1kFEWw5jL68ASmuEq9txir'
         playlist_data = sp.playlist_tracks(playlist_id, limit=1)['total']
         print(playlist_data)
         
@@ -237,11 +239,13 @@ def clear_songs_from_playlist():
         
         for i in range(0, playlist_data, 100):
             tracks = sp.playlist_tracks(playlist_id=playlist_id, limit=100, offset=i)
+            t.sleep(1)
             track_ids = [track['track']['id'] for track in tracks['items'] if track['track']]
             t.sleep(.5)
             
             if not track_ids:
-                print("oops")
+                print("waiting 1 second")
+                t.sleep(1)
                 continue
             
             sp.playlist_remove_all_occurrences_of_items(playlist_id=playlist_id, items=track_ids)
@@ -322,6 +326,7 @@ def get_playlist_id():
                 return playlist['id']
         return None
     except Exception as e:
+        print(f"Error: {str(e)}")
         return f"Error retrieving playlist ID: {str(e)}", 400
 
 @app.route('/main', methods=['GET'])
@@ -337,9 +342,9 @@ def main():
         print("done1")
         album_songs = get_album_songs(album_ids)
         print("done2")
-        get_playlist_id = create_playlist('tester')
+        playlist_id = create_playlist('tester')
         print("done3")
-        add_songs_to_playlist(album_songs, get_playlist_id)
+        add_songs_to_playlist(album_songs, playlist_id)
         print("done4")
       
       
@@ -357,5 +362,5 @@ def main():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
     
