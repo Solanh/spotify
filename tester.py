@@ -72,7 +72,7 @@ def profile():
     return f"Logged in as: {user['display_name']} (ID: {user['id']})"
 
 
-@app.route('/create_playlist', methods=['GET'])
+
 def create_playlist():
     #Create a new playlist for the user."""
     
@@ -109,7 +109,6 @@ def get_valid_token():
 
     return token_info['access_token']
 
-@app.route('/get_album_ids', methods=['GET'])
 def get_album_ids():
     
     # Initialize Spotify client with valid token
@@ -145,8 +144,7 @@ def get_album_ids():
     except Exception as e:
         return [f"Error retriving songs: {str(e)}", 400]
     
-    
-@app.route('/get_album_songs', methods=['GET'])
+
 def get_album_songs(album_ids):
     
 
@@ -180,7 +178,7 @@ def get_album_songs(album_ids):
     except Exception as e:
         return [f"Error retriving songs: {str(e)}", 400]
     
-@app.route('/check_liked_songs', methods=['GET'])
+
 def check_liked_songs():
     token_info = session.get('token_info', None)
     
@@ -223,8 +221,7 @@ def check_liked_songs():
     except Exception as e:
         return f"Error retriving songs: {str(e)}", 400
     
-    
-@app.route('/clear_songs_from_playlist', methods=['GET'])
+
 def clear_songs_from_playlist():
     sp = spotipy.Spotify(auth=get_valid_token())
     
@@ -257,13 +254,8 @@ def clear_songs_from_playlist():
     except Exception as e:
         return f"Error clearing songs from playlist: {str(e)}", 400
     
-    
-@app.route('/testing', methods=['GET'])
-def tester_function():
-    
-    return "Working"
 
-@app.route('/check_playlist_songs', methods=['GET'])
+
 def check_playlist_songs():
     sp = spotipy.Spotify(auth=get_valid_token())
     
@@ -287,7 +279,6 @@ def check_playlist_songs():
     except Exception as e:
         return f"Error checking playlist songs: {str(e)}", 400
 
-@app.route('/add_songs_to_playlist', methods=['GET'])
 def add_songs_to_playlist(track_ids, playlist_id):
     sp = spotipy.Spotify(auth=get_valid_token())
     
@@ -311,7 +302,7 @@ def add_songs_to_playlist(track_ids, playlist_id):
         return f"Error adding songs to playlist: {str(e)}", 400
     
     
-@app.route('/get_playlist_id', methods=['GET'])
+
 def get_playlist_id():
     
     sp = spotipy.Spotify(auth=get_valid_token())
