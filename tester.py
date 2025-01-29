@@ -329,20 +329,14 @@ def main():
 
     try:
         # Call the functions and collect their results
-        album_ids = get_album_ids()
-        print("done1")
-        album_songs = get_album_songs(album_ids)
-        print("done2")
-        playlist_id = create_playlist('tester')
-        print("done3")
-        add_songs_to_playlist(album_songs, playlist_id)
-        print("done4")
+        playlist_id = get_playlist_id()
+        t.sleep(5)
       
       
         
 
         return (
-            f"Main actions executed successfully!<br>"
+            f"Main actions executed successfully!{playlist_id} found<br>"
             
             
         )
