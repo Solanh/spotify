@@ -8,8 +8,9 @@
 </head>
 <body>
     <div id="navbar-placeholder"></div> <!-- Navbar placeholder -->
-
-    <button type="button" id="run-button">Run</button>
+    <div class="main-button">
+        <button type="button" id="run-button">Run</button>
+    </div>    
     <div id="loading-spinner" class="spinner" style="display: none;">Loading...</div> <!-- Loading spinner -->
 
     <section class="parameters">
@@ -42,6 +43,23 @@
 
         // Call the function to load the navbar
         loadNavbar();
+
+        function toggleMenu() {
+            console.log("Button clicked"); // Add this line to check if the function runs
+            const imageContainer = document.getElementById("menuContent");
+            const toggleButton = document.getElementById("menuButton").querySelector("i");
+            
+            if (imageContainer.style.display === "flex") {
+                imageContainer.style.display = "none";
+                toggleButton.className = "fas fa-bars"; // Change to down arrow
+            } 
+            else {
+                imageContainer.style.display = "flex";
+                toggleButton.className = "fas fa-times"; // Change to up arrow
+            }
+
+        
+        }
 
         // Handle button click
         document.getElementById('run-button').addEventListener('click', function () {

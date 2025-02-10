@@ -3,7 +3,7 @@ from flask import Flask, redirect, request, session, url_for
 from dotenv import load_dotenv
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
-import time as t
+
 import logging
 
 
@@ -83,7 +83,7 @@ def create_playlist(name):
     # Initialize Spotify client with valid token
     sp = spotipy.Spotify(auth=get_valid_token())    
     user = sp.current_user()
-    t.sleep(1)
+ 
 
     # Create a playlist
     try:
@@ -97,20 +97,26 @@ def create_playlist(name):
         return f"Error creating playlist: {str(e)}", 400
 
 def get_valid_token():
-    
-    # Get token info from the session
+    """
+    Retrieves a valid access token from the session.
+    Refreshes the token if it has expired.
+    Raises an exception if no valid token is available.
+    """
     token_info = session.get('token_info', None)
-
-    # If no token info is available, return None
     if not token_info:
-        return None
+        raise ValueError("No token found in session. User must log in.")
 
-    # Refresh the token if it has expired
-    if sp_oauth.is_token_expired(token_info):
-        token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
-        session['token_info'] = token_info
+    try:
+        if sp_oauth.is_token_expired(token_info):
+            token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
+            session['token_info'] = token_info
+        return token_info['access_token']
+    except Exception as e:
+        # Log the error and clear token info if needed
+        logging.error(f"Token refresh error: {str(e)}")
+        session.pop('token_info', None)
+        raise ValueError("Error refreshing token. Please log in again.")
 
-    return token_info['access_token']
 
 
 
@@ -135,46 +141,43 @@ def get_album_songs(album_ids):
     
 
 def check_liked_songs():
-    token_info = session.get('token_info', None)
-    
-    liked_songs_l = []
-    
-    if not token_info:
-        return redirect(url_for('index'))  # Redirect to login if no token
+    """
+    Fetch all liked songs for the current user.
+    Returns a list of dictionaries with album names and track IDs.
+    """
+    sp = spotipy.Spotify(auth=get_valid_token())
 
-    # Check and refresh token if needed
-    if sp_oauth.is_token_expired(token_info):
-        token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
-        session['token_info'] = token_info
+    liked_songs = []
+    limit = 50  # Maximum allowed by Spotify API
+    offset = 0
 
-    # Initialize Spotify client with valid token
-    sp = spotipy.Spotify(auth=token_info['access_token'])
-    user = sp.current_user()
-    
     try:
-        offset = 0
-        limit = 10
-        
         while True:
-            liked_songs = sp.current_user_saved_tracks(limit=limit, offset=offset)
-            if not liked_songs['items']:
-                print("No more albums found")
-                break  # Exit loop if no more albums
+            results = sp.current_user_saved_tracks(limit=limit, offset=offset)
 
-            for item in liked_songs['items']:
-                track = item['track']
-                
-                liked_songs_l.append({'album': track['album']['name'], 'track': track['name']})
-                    
-            offset += limit  # Move to the next page
-                    
-            print(f"Found {len(liked_songs_l)} tracks")
-            
-        return liked_songs_l
-        
-        
+            if not results or not results.get("items"):
+                break  # Exit loop when no more liked songs are found
+
+            # Extract track data efficiently
+            new_tracks = [
+                item["track"]["id"] for item in results["items"]
+            ]
+            liked_songs.extend(new_tracks)
+
+            offset += limit  # Move to the next batch
+            print(f"Retrieved {len(liked_songs)} liked songs so far...")
+
+            # Stop if there are no more pages to fetch
+            if not results.get("next"):
+                break
+
+        return liked_songs
+
     except Exception as e:
-        return f"Error retriving songs: {str(e)}", 400
+        logging.error(f"Error retrieving liked songs: {str(e)}")
+        return {"error": f"Error retrieving liked songs: {str(e)}"}, 400
+
+
     
 def get_album_ids():  
     # Initialize Spotify client with valid token
@@ -278,8 +281,9 @@ def main():
 
     create_new_playlist = False
     album_songs_to_playlist = False
-    clear_existing_playlist = True
+    clear_existing_playlist = False
     get_album_id = False
+    transfer_liked_songs = True
 
     sp = spotipy.Spotify(auth=get_valid_token())
 
@@ -289,18 +293,25 @@ def main():
             return f"Main actions executed successfully! Found {len(album_ids)} albums.<br>"
         elif album_songs_to_playlist and create_new_playlist:
             album_ids = get_album_ids()
-            t.sleep(1)
+           
             album_songs = get_album_songs(album_ids)
-            t.sleep(1)
+        
             playlist_id = create_playlist("Album Songss")
-            t.sleep(1)
+      
             add_songs_to_playlist(album_songs, playlist_id)
             return "Songs added!"
         elif clear_existing_playlist:
             playlist_id = get_playlist_id("Album Songss")
-            t.sleep(1)
+         
             clear_playlist(playlist_id)
             return "Playlist cleared!"
+        elif transfer_liked_songs:
+            liked_songs = check_liked_songs()
+           
+            playlist_id = create_playlist("Album Songs")
+            
+            add_songs_to_playlist(liked_songs, playlist_id)
+            return "Liked songs transferred!"
             
 
         return "Main actions executed successfully!"
